@@ -5,6 +5,10 @@ import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
 export const sendOtp = asyncHandler(async (req, res) => {
   const { phoneNumber } = req.body;
 
@@ -30,7 +34,7 @@ export const sendOtp = asyncHandler(async (req, res) => {
 });
 
 export const verifyOtp = asyncHandler(async (req, res) => {
-  const { phoneNumber, otp } = req.body;
+  const { phoneNumber, otp, fullName, email } = req.body;
 
   if (!phoneNumber || !otp) {
     throw new ApiError(400, "Phone number and OTP required");
@@ -46,7 +50,9 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     throw new ApiError(400, "OTP expired");
   }
 
-  if (otpRecord.otp !== otp) {
+  const isOtpValid = await otpRecord.isOtpCorrect(otp);
+
+  if (!isOtpValid) {
     throw new ApiError(400, "Invalid OTP");
   }
 
@@ -55,26 +61,58 @@ export const verifyOtp = asyncHandler(async (req, res) => {
   let existingUser = await User.findOne({ phoneNumber });
 
   if (!existingUser) {
+    if (!fullName || !email) {
+      throw new ApiError(400, "fullName and email are required for new users");
+    }
+
+    if (!isValidEmail(email)) {
+      throw new ApiError(400, "Invalid email format");
+    }
+
     existingUser = await User.create({
-      fullName: "New User",
-      email: `${phoneNumber}@temp.com`,
+      fullName,
+      email,
       phoneNumber,
-      upiId: `user${Date.now()}@paytm`,
+      upiId: `user${phoneNumber}@ptm`,
       qrCode: `QR_${Date.now()}`,
-      balance: 0
+      isVerified: true
     });
 
     await Wallet.create({
       userId: existingUser._id,
-      waletBalance: 0
+      balance: 0
     });
+  } else if (!existingUser.isVerified) {
+    existingUser.isVerified = true;
+    await existingUser.save();
   }
+
+  const accessToken = existingUser.generateAccessToken();
+  await existingUser.save({ validateBeforeSave: false });
+
+  const safeUser = {
+    _id: existingUser._id,
+    fullName: existingUser.fullName,
+    email: existingUser.email,
+    phoneNumber: existingUser.phoneNumber,
+    upiId: existingUser.upiId,
+    qrCode: existingUser.qrCode,
+    isVerified: existingUser.isVerified
+  };
+
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
 
   return res.status(200).json(
     new ApiResponse(
       200,
       {
-        user: existingUser
+        user: safeUser,
+        accessToken
       },
       "Login successful"
     )

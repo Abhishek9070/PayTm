@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-
+import bcrypt from "bcrypt";
 const otpSchema = new Schema({
   phoneNumber: {
     type: String,
@@ -19,5 +19,22 @@ const otpSchema = new Schema({
   }
 
 }, { timestamps: true });
+
+otpSchema.pre("save", async function (next) {
+  try {
+    if (!this.isModified("otp")) {
+      return next();
+    }
+
+    this.otp = await bcrypt.hash(this.otp, 10);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+otpSchema.methods.isOtpCorrect = async function (enteredOtp) {
+  return bcrypt.compare(enteredOtp, this.otp);
+};
 
 export const OTP = mongoose.model("OTP", otpSchema);
