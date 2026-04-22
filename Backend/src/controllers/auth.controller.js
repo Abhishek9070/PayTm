@@ -9,6 +9,12 @@ const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax"
+};
+
 export const sendOtp = asyncHandler(async (req, res) => {
   const { phoneNumber } = req.body;
 
@@ -88,6 +94,9 @@ export const verifyOtp = asyncHandler(async (req, res) => {
   }
 
   const accessToken = existingUser.generateAccessToken();
+  const refreshToken = existingUser.generateRefreshToken();
+
+  existingUser.refreshToken = refreshToken;
   await existingUser.save({ validateBeforeSave: false });
 
   const safeUser = {
@@ -101,10 +110,13 @@ export const verifyOtp = asyncHandler(async (req, res) => {
   };
 
   res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000
+    ...cookieOptions,
+    maxAge: 2 * 24 * 60 * 60 * 1000
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    ...cookieOptions,
+    maxAge: 12 * 24 * 60 * 60 * 1000
   });
 
   return res.status(200).json(
@@ -112,9 +124,45 @@ export const verifyOtp = asyncHandler(async (req, res) => {
       200,
       {
         user: safeUser,
-        accessToken
+        accessToken,
+        refreshToken
       },
       "Login successful"
+    )
+  );
+});
+
+export const refreshAccessToken = asyncHandler(async (req, res) => {
+  const user = req.user;
+
+  if (!user) {
+    throw new ApiError(401, "Unauthorized request");
+  }
+
+  const newAccessToken = user.generateAccessToken();
+  const newRefreshToken = user.generateRefreshToken();
+
+  user.refreshToken = newRefreshToken;
+  await user.save({ validateBeforeSave: false });
+
+  res.cookie("accessToken", newAccessToken, {
+    ...cookieOptions,
+    maxAge: 2 * 24 * 60 * 60 * 1000
+  });
+
+  res.cookie("refreshToken", newRefreshToken, {
+    ...cookieOptions,
+    maxAge: 12 * 24 * 60 * 60 * 1000
+  });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken
+      },
+      "Access token refreshed successfully"
     )
   );
 });
