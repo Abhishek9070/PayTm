@@ -25,6 +25,12 @@ const userSchema = new Schema({
     type: String,
     default: null
   },
+
+  refreshToken: {
+    type: String,
+    default: null
+  },
+
   upiId: {
     type: String,
     unique: true,
@@ -52,16 +58,36 @@ userSchema.methods.generateAccessToken = function () {
   const token = jwt.sign(
     {
       id: this._id,
-      phoneNumber: this.phoneNumber
+      phoneNumber: this.phoneNumber,
+      fullName:this.fullName
     },
     jwtSecret,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "7d"
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "2d"
     }
   );
 
-  this.accessToken = token;
+  // this.accessToken = token; // no need to store in DB
   return token;
 };
+userSchema.methods.generateRefreshToken = function () {
+  const jwtSecret =
+    process.env.REFRESH_TOKEN_SECRET || process.env.REFRESH_TOKEN_SECRTE;
 
+  if (!jwtSecret) {
+    throw new Error("Refresh token secret is not configured");
+  }
+
+  const token = jwt.sign(
+    {
+      id: this._id,
+    },
+    jwtSecret,
+    {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "12d"
+    }
+  );
+
+  return token;
+};
 export const User = mongoose.model("User", userSchema);
