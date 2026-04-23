@@ -20,17 +20,12 @@ const otpSchema = new Schema({
 
 }, { timestamps: true });
 
-otpSchema.pre("save", async function (next) {
-  try {
-    if (!this.isModified("otp")) {
-      return next();
-    }
-
-    this.otp = await bcrypt.hash(this.otp, 10);
-    next();
-  } catch (error) {
-    next(error);
+otpSchema.pre("save", async function () {
+  if (!this.isModified("otp")) {
+    return;
   }
+
+  this.otp = await bcrypt.hash(this.otp, 10);
 });
 
 otpSchema.methods.isOtpCorrect = async function (enteredOtp) {

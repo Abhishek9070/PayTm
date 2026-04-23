@@ -3,40 +3,32 @@ import { User } from "../models/user.model.js";
 import ApiError from "../utils/apiErros.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
-export const verifyRefreshToken = asyncHandler(async (req, res, next) => {
-  const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+export const verifyJWT = asyncHandler(async (req, res, next) => {
+  const authHeader = req.headers?.authorization || "";
+  const bearerToken = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7).trim()
+    : null;
 
-  if (!incomingRefreshToken) {
-    throw new ApiError(401, "Refresh token is required");
+  const token = req.cookies?.accessToken || bearerToken;
+
+  if (!token) {
+    throw new ApiError(401, "Unauthorized request");
   }
 
-  const refreshTokenSecret =
-    process.env.REFRESH_TOKEN_SECRET 
-
-  if (!refreshTokenSecret) {
-    throw new ApiError(500, "Refresh token secret is not configured");
-  }
-
-  let decodedToken;
+  let decoded;
 
   try {
-    decodedToken = jwt.verify(incomingRefreshToken, refreshTokenSecret);
+    decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
   } catch (error) {
-    throw new ApiError(401, "Invalid or expired refresh token");
+    throw new ApiError(401, "Invalid or expired access token");
   }
 
-  const user = await User.findById(decodedToken?.id);
+  const user = await User.findById(decoded.id).select("-password -refreshToken");
 
   if (!user) {
-    throw new ApiError(401, "Invalid refresh token");
-  }
-
-  if (!user.refreshToken || user.refreshToken !== incomingRefreshToken) {
-    throw new ApiError(401, "Refresh token mismatch");
+    throw new ApiError(401, "Invalid access token");
   }
 
   req.user = user;
-  req.refreshToken = incomingRefreshToken;
-
   next();
 });

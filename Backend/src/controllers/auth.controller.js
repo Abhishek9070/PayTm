@@ -106,7 +106,8 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     phoneNumber: existingUser.phoneNumber,
     upiId: existingUser.upiId,
     qrCode: existingUser.qrCode,
-    isVerified: existingUser.isVerified
+    isVerified: existingUser.isVerified,
+    isAdmin: existingUser.isAdmin
   };
 
   res.cookie("accessToken", accessToken, {

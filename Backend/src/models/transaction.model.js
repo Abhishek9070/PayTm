@@ -1,13 +1,13 @@
 import mongoose,{Schema} from "mongoose";
 
 const transactionSchema = new Schema({
-    sendersId:{
+    sender:{
         type:Schema.Types.ObjectId,
         ref:"User",
         required:true,
         index:true
     },
-    reciversId:{
+    receiver:{
         type:Schema.Types.ObjectId,
         ref:"User",
         required:true,
@@ -21,9 +21,9 @@ const transactionSchema = new Schema({
     status:{
         type:String,
         required:true,
-        enum:["Pending","Success","Failed"],
-        default:"Pending"
+        enum:["pending","success","failed"],
+        default:"pending"
     }
 },{timestamps:true})
 
-export const transaction = mongoose.model("Transaction",transactionSchema)
+export const Transaction = mongoose.model("Transaction",transactionSchema)
