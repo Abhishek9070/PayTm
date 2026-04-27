@@ -4,24 +4,9 @@ import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 export const addBalance = asyncHandler(async (req, res) => {
-  const { amount } = req.body;
-  const userId = req.user._id;
-
-  if (!amount || amount <= 0) {
-    throw new ApiError(400, "Invalid amount");
-  }
-
-  const wallet = await Wallet.findOne({ userId });
-
-  if (!wallet) {
-    throw new ApiError(404, "Wallet not found");
-  }
-
-  wallet.balance += Number(amount);
-  await wallet.save();
-
-  return res.status(200).json(
-    new ApiResponse(200, wallet, "Balance added successfully")
+  throw new ApiError(
+    405,
+    "Direct balance top-up is disabled. Create a deposit request and wait for admin approval."
   );
 });
 
