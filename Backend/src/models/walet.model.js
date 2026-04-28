@@ -13,6 +13,10 @@ const walletSchema = new Schema({
     type: Number,
     default: 0,
     min: 0
+  },
+  lockedBalance: { 
+      type: Number,
+      default: 0 
   }
 
 }, { timestamps: true });
