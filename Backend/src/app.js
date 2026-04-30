@@ -6,6 +6,9 @@ import transactionRoutes from "./routes/transaction.routes.js";
 import walletRoutes from "./routes/wallet.routes.js";
 import withdrawalRoutes from "./routes/withdrawal.routes.js";
 import ApiResponse from "./utils/apiResponse.js";
+import { handleRazorpayWebhook } from "./controllers/razorpay.controller.js";
+import razorpayRoutes from "./routes/razorpay.routes.js";
+import notificationRouter from "./routes/notification.routes.js";
 
 const app = express();
 
@@ -14,6 +17,12 @@ app.use(
         origin: process.env.CORS_ORIGIN,
         credentials: true
     })
+);
+
+app.use(
+    "/api/v1/razorpay/webhook",
+    express.raw({ type: "application/json" }),
+    handleRazorpayWebhook
 );
 
 app.use(express.json({ limit: "20kb" }));
@@ -25,11 +34,11 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/transactions", transactionRoutes);
 app.use("/api/v1/wallet", walletRoutes);
 app.use("/api/v1/withdrawals", withdrawalRoutes);
-
+app.use("/api/v1/razorpay", razorpayRoutes);
 app.get("/", (req, res) => {
     res.status(200).json(new ApiResponse(200, null, "API is running..."));
 });
-
+app.use("/api/v1/notifications", notificationRouter);
 app.use((err, req, res, next) => {
     const statusCode = err?.statusCode || err?.status || 500;
     const message = err?.message || "Something went wrong";

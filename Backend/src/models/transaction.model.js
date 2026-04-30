@@ -43,6 +43,17 @@ const transactionSchema = new Schema({
         enum: ["debit", "credit", "send", "receive"],
         required: false
     }
+    ,
+    razorpayOrderId: {
+        type: String,
+        required: false,
+        index: true
+    },
+    razorpayPaymentId: {
+        type: String,
+        required: false,
+        index: true
+    }
 },{timestamps:true})
 
 export const Transaction = mongoose.model("Transaction",transactionSchema)

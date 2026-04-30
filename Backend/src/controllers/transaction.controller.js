@@ -4,6 +4,8 @@ import { Transaction } from "../models/transaction.model.js";
 import { Deposit } from "../models/deposit.model.js";
 import { Withdrawal } from "../models/withdraw.model.js";
 import { Wallet } from "../models/walet.model.js";
+import { createNotification } from "../utils/createNotification.js";
+import { sendSMS } from "../services/sms.service.js";
 import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -115,7 +117,7 @@ export const sendMoney = asyncHandler(async (req, res) => {
     await receiverWallet.save({ session });
 
     // Create transaction
-    const transaction = await Transaction.create(
+    const [transaction] = await Transaction.create(
       [
         {
           type: "transfer",
@@ -128,8 +130,49 @@ export const sendMoney = asyncHandler(async (req, res) => {
       { session }
     );
 
+    await createNotification(
+      {
+        userId: senderId,
+        title: "Money Sent",
+        message: `You sent ₹${parsedAmount}`,
+        type: "transfer",
+        metadata: {
+          transactionId: transaction._id,
+          direction: "send",
+          amount: parsedAmount
+        }
+      },
+      { session }
+    );
+
+    await createNotification(
+      {
+        userId: receiverId,
+        title: "Money Received",
+        message: `You received ₹${parsedAmount}`,
+        type: "transfer",
+        metadata: {
+          transactionId: transaction._id,
+          direction: "receive",
+          amount: parsedAmount
+        }
+      },
+      { session }
+    );
+
     await session.commitTransaction();
     session.endSession();
+
+    void Promise.allSettled([
+      sendSMS({
+        to: sender.phoneNumber,
+        message: `You sent ₹${parsedAmount} successfully`
+      }),
+      sendSMS({
+        to: receiver.phoneNumber,
+        message: `You received ₹${parsedAmount} successfully`
+      })
+    ]);
 
     return res.status(200).json(
       new ApiResponse(200, transaction, "Transaction successful")

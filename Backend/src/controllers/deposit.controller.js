@@ -5,11 +5,33 @@ import { Wallet } from "../models/walet.model.js";
 import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { createNotification } from "../utils/createNotification.js";
 
 const toMoneyNumber = (value) => Number(value);
 
 const isSameAmount = (left, right) => {
   return Number.isFinite(left) && Number.isFinite(right) && left === right;
+};
+
+const notifyDepositSuccess = async ({ deposit, session }) => {
+  try {
+    await createNotification(
+      {
+        userId: deposit.userId,
+        title: "Deposit Approved",
+        message: `₹${deposit.amount} added to your wallet successfully`,
+        type: "deposit",
+        metadata: {
+          depositId: deposit._id,
+          paymentRef: deposit.paymentRef,
+          amount: deposit.amount
+        }
+      },
+      { session }
+    );
+  } catch (error) {
+    console.log("Deposit notification failed:", error.message);
+  }
 };
 
 const creditDepositInTransaction = async ({ deposit, session, reviewerId = null }) => {
@@ -89,6 +111,8 @@ const autoReconcileReference = async ({ referenceId }) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    await notifyDepositSuccess({ deposit, session });
 
     return { status: "approved", deposit };
   } catch (error) {
@@ -199,6 +223,8 @@ export const approveDeposit = asyncHandler(async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    await notifyDepositSuccess({ deposit, session });
 
     return res.status(200).json(
       new ApiResponse(200, deposit, "Deposit approved successfully")

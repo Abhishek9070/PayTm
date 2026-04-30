@@ -1,13 +1,30 @@
 import mongoose from "mongoose";
 import { Wallet } from "../models/walet.model.js";
+import { User } from "../models/user.model.js";
 import { Withdrawal } from "../models/withdraw.model.js";
-import { Transaction } from "../models/transaction.model.js"; // ✅ NEW
+import { Transaction } from "../models/transaction.model.js"; 
+import { sendSMS } from "../services/sms.service.js";
 import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
+const notifyWithdrawalApproved = async ({ userId, amount }) => {
+  try {
+    const user = await User.findById(userId).select("phoneNumber");
 
-// USER → Create Withdrawal
+    if (!user?.phoneNumber) {
+      return;
+    }
+
+    void sendSMS({
+      to: user.phoneNumber,
+      message: `₹${amount} withdrawn successfully`
+    });
+  } catch (error) {
+    console.log("Withdrawal SMS notification failed:", error.message);
+  }
+};
+
 export const createWithdrawal = asyncHandler(async (req, res) => {
   const { amount, upiId } = req.body;
   const userId = req.user._id;
@@ -58,7 +75,6 @@ export const createWithdrawal = asyncHandler(async (req, res) => {
 });
 
 
-//  USER → Get My Withdrawals
 export const getMyWithdrawals = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
@@ -70,8 +86,6 @@ export const getMyWithdrawals = asyncHandler(async (req, res) => {
   );
 });
 
-
-// ADMIN → Get Pending Withdrawals
 export const getPendingWithdrawals = asyncHandler(async (req, res) => {
   const withdrawals = await Withdrawal.find({ status: "pending" })
     .populate("userId", "fullName phoneNumber")
@@ -82,8 +96,6 @@ export const getPendingWithdrawals = asyncHandler(async (req, res) => {
   );
 });
 
-
-//  ADMIN → Approve Withdrawal (UPDATED)
 export const approveWithdrawal = asyncHandler(async (req, res) => {
   const { withdrawalId } = req.params;
 
@@ -124,7 +136,6 @@ export const approveWithdrawal = asyncHandler(async (req, res) => {
       throw new ApiError(409, "Wallet state mismatch for approval");
     }
 
-    // ✅ ADD THIS (CRITICAL)
     await Transaction.create(
       [
         {
@@ -148,6 +159,11 @@ export const approveWithdrawal = asyncHandler(async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
+    await notifyWithdrawalApproved({
+      userId: withdrawal.userId,
+      amount: withdrawal.amount
+    });
+
     return res.status(200).json(
       new ApiResponse(200, withdrawal, "Withdrawal approved")
     );
@@ -159,8 +175,6 @@ export const approveWithdrawal = asyncHandler(async (req, res) => {
   }
 });
 
-
-// ADMIN → Reject Withdrawal
 export const rejectWithdrawal = asyncHandler(async (req, res) => {
   const { withdrawalId } = req.params;
   const { reason } = req.body;
