@@ -4,6 +4,11 @@ import { User } from "../models/user.model.js";
 import { Withdrawal } from "../models/withdraw.model.js";
 import { Transaction } from "../models/transaction.model.js"; 
 import { sendSMS } from "../services/sms.service.js";
+import {
+  consumeActionRateLimit,
+  recordSecurityEvent,
+  WITHDRAWAL_COOLDOWN_MS
+} from "../utils/fraudProtection.js";
 import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -37,6 +42,72 @@ export const createWithdrawal = asyncHandler(async (req, res) => {
 
   if (!upiId || !upiId.trim()) {
     throw new ApiError(400, "UPI ID required");
+  }
+
+  await consumeActionRateLimit({
+    userId: userId.toString(),
+    action: "withdrawal_request",
+    limit: 2,
+    windowMs: 15 * 60 * 1000,
+    reason: "Too many withdrawal attempts. Please wait before trying again.",
+    route: req.originalUrl,
+    ipAddress: req.ip,
+    metadata: {
+      amount: parsedAmount,
+      upiId: upiId.trim().toLowerCase()
+    }
+  });
+
+  const pendingWithdrawal = await Withdrawal.findOne({
+    userId,
+    status: "pending"
+  }).sort({ createdAt: -1 });
+
+  if (pendingWithdrawal) {
+    await recordSecurityEvent({
+      userId,
+      actionType: "duplicate_payment",
+      reason: "User already has a pending withdrawal request",
+      severity: "medium",
+      blocked: true,
+      route: req.originalUrl,
+      ipAddress: req.ip,
+      metadata: {
+        withdrawalId: pendingWithdrawal._id,
+        amount: pendingWithdrawal.amount
+      }
+    });
+
+    throw new ApiError(409, "You already have a pending withdrawal request");
+  }
+
+  const recentWithdrawal = await Withdrawal.findOne({
+    userId
+  }).sort({ createdAt: -1 });
+
+  if (recentWithdrawal && Date.now() - recentWithdrawal.createdAt.getTime() < WITHDRAWAL_COOLDOWN_MS) {
+    await recordSecurityEvent({
+      userId,
+      actionType: "withdrawal_cooldown",
+      reason: "Withdrawal cooldown is active",
+      severity: "medium",
+      blocked: true,
+      route: req.originalUrl,
+      ipAddress: req.ip,
+      metadata: {
+        lastWithdrawalId: recentWithdrawal._id,
+        amount: parsedAmount
+      }
+    });
+
+    const remainingMinutes = Math.ceil(
+      (WITHDRAWAL_COOLDOWN_MS - (Date.now() - recentWithdrawal.createdAt.getTime())) / 60000
+    );
+
+    throw new ApiError(
+      429,
+      `Withdrawal cooldown active. Please wait about ${remainingMinutes} minute(s) before creating another request.`
+    );
   }
 
   const wallet = await Wallet.findOneAndUpdate(

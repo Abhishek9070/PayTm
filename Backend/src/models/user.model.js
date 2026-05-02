@@ -1,5 +1,27 @@
 import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
+const fileAssetSchema = new Schema(
+  {
+    url: {
+      type: String,
+      default: null
+    },
+    publicId: {
+      type: String,
+      default: null
+    },
+    mimeType: {
+      type: String,
+      default: null
+    },
+    uploadedAt: {
+      type: Date,
+      default: null
+    }
+  },
+  { _id: false }
+);
+
 const userSchema = new Schema({
   fullName: {
     type: String,
@@ -41,6 +63,43 @@ const userSchema = new Schema({
     type: String
   },
 
+  kyc: {
+    status: {
+      type: String,
+      enum: ["not_submitted", "pending", "approved", "rejected"],
+      default: "not_submitted"
+    },
+    profileImage: {
+      type: fileAssetSchema,
+      default: () => ({})
+    },
+    aadhaarImage: {
+      type: fileAssetSchema,
+      default: () => ({})
+    },
+    panImage: {
+      type: fileAssetSchema,
+      default: () => ({})
+    },
+    submittedAt: {
+      type: Date,
+      default: null
+    },
+    reviewedAt: {
+      type: Date,
+      default: null
+    },
+    reviewedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
+    rejectionReason: {
+      type: String,
+      default: null
+    }
+  },
+
   isVerified: {
     type: Boolean,
     default: false
@@ -72,7 +131,7 @@ userSchema.methods.generateAccessToken = function () {
     }
   );
 
-  // this.accessToken = token; // no need to store in DB
+  // this.accessToken = token;  no need to store in DB
   return token;
 };
 userSchema.methods.generateRefreshToken = function () {

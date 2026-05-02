@@ -5,6 +5,12 @@ import { razorpayInstance } from "../config/razorpay.js";
 import { Wallet } from "../models/walet.model.js";
 import { PaymentOrder } from "../models/paymentOrder.model.js";
 import { Transaction } from "../models/transaction.model.js";
+import {
+  consumeActionRateLimit,
+  HIGH_VALUE_TRANSACTION_THRESHOLD,
+  PAYMENT_ORDER_COOLDOWN_MS,
+  recordSecurityEvent
+} from "../utils/fraudProtection.js";
 
 import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
@@ -18,6 +24,69 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
 
   if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
     throw new ApiError(400, "Invalid amount");
+  }
+
+  await consumeActionRateLimit({
+    userId: req.user._id.toString(),
+    action: "payment_order",
+    limit: 5,
+    windowMs: 10 * 60 * 1000,
+    reason: "Too many payment order requests. Please wait before trying again.",
+    route: req.originalUrl,
+    ipAddress: req.ip,
+    metadata: {
+      amount: parsedAmount
+    }
+  });
+
+  const recentPendingOrder = await PaymentOrder.findOne({
+    userId: req.user._id,
+    amount: parsedAmount,
+    status: "pending",
+    createdAt: {
+      $gte: new Date(Date.now() - PAYMENT_ORDER_COOLDOWN_MS)
+    }
+  }).sort({ createdAt: -1 });
+
+  if (recentPendingOrder) {
+    await recordSecurityEvent({
+      userId: req.user._id,
+      actionType: "duplicate_order",
+      reason: "Duplicate payment order request detected",
+      severity: "medium",
+      blocked: true,
+      route: req.originalUrl,
+      ipAddress: req.ip,
+      metadata: {
+        paymentOrderId: recentPendingOrder._id,
+        amount: parsedAmount
+      }
+    });
+
+    try {
+      const existingOrder = await razorpayInstance.orders.fetch(recentPendingOrder.razorpayOrderId);
+
+      return res.status(200).json(
+        new ApiResponse(200, existingOrder, "Existing pending payment order returned")
+      );
+    } catch (error) {
+      console.log("Failed to fetch existing Razorpay order:", error.message);
+    }
+  }
+
+  if (parsedAmount >= HIGH_VALUE_TRANSACTION_THRESHOLD) {
+    void recordSecurityEvent({
+      userId: req.user._id,
+      actionType: "high_value_transaction",
+      reason: `High value payment order created for ₹${parsedAmount}`,
+      severity: "high",
+      blocked: false,
+      route: req.originalUrl,
+      ipAddress: req.ip,
+      metadata: {
+        amount: parsedAmount
+      }
+    });
   }
 
 

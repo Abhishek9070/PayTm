@@ -6,6 +6,12 @@ import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { createNotification } from "../utils/createNotification.js";
+import {
+  consumeActionRateLimit,
+  DUPLICATE_WINDOW_MS,
+  HIGH_VALUE_TRANSACTION_THRESHOLD,
+  recordSecurityEvent
+} from "../utils/fraudProtection.js";
 
 const toMoneyNumber = (value) => Number(value);
 
@@ -149,6 +155,64 @@ export const createDeposit = asyncHandler(async (req, res) => {
 
   if (normalizedPaidToUpiId !== adminUpiId) {
     throw new ApiError(400, "Deposit must be sent to the configured admin UPI");
+  }
+
+  await consumeActionRateLimit({
+    userId: req.user._id.toString(),
+    action: "deposit_request",
+    limit: 3,
+    windowMs: 5 * 60 * 1000,
+    reason: "Too many deposit requests. Please wait before trying again.",
+    route: req.originalUrl,
+    ipAddress: req.ip,
+    metadata: {
+      amount: normalizedAmount,
+      paymentRef: normalizedPaymentRef
+    }
+  });
+
+  const duplicateDeposit = await Deposit.findOne({
+    userId: req.user._id,
+    status: "pending",
+    amount: normalizedAmount,
+    createdAt: {
+      $gte: new Date(Date.now() - DUPLICATE_WINDOW_MS)
+    }
+  }).sort({ createdAt: -1 });
+
+  if (duplicateDeposit) {
+    await recordSecurityEvent({
+      userId: req.user._id,
+      actionType: "duplicate_payment",
+      reason: "Duplicate deposit request detected",
+      severity: "medium",
+      blocked: true,
+      route: req.originalUrl,
+      ipAddress: req.ip,
+      metadata: {
+        existingDepositId: duplicateDeposit._id,
+        amount: normalizedAmount,
+        paymentRef: normalizedPaymentRef
+      }
+    });
+
+    throw new ApiError(409, "A similar deposit request is already pending");
+  }
+
+  if (normalizedAmount >= HIGH_VALUE_TRANSACTION_THRESHOLD) {
+    void recordSecurityEvent({
+      userId: req.user._id,
+      actionType: "suspicious_activity",
+      reason: `High value deposit request of ₹${normalizedAmount}`,
+      severity: "high",
+      blocked: false,
+      route: req.originalUrl,
+      ipAddress: req.ip,
+      metadata: {
+        amount: normalizedAmount,
+        paymentRef: normalizedPaymentRef
+      }
+    });
   }
 
   const existingDeposit = await Deposit.findOne({ paymentRef: normalizedPaymentRef });

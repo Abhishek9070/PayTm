@@ -5,10 +5,12 @@ import authRoutes from "./routes/auth.routes.js";
 import transactionRoutes from "./routes/transaction.routes.js";
 import walletRoutes from "./routes/wallet.routes.js";
 import withdrawalRoutes from "./routes/withdrawal.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import ApiResponse from "./utils/apiResponse.js";
 import { handleRazorpayWebhook } from "./controllers/razorpay.controller.js";
 import razorpayRoutes from "./routes/razorpay.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
+import kycRoutes from "./routes/kyc.routes.js";
 
 const app = express();
 
@@ -35,6 +37,8 @@ app.use("/api/v1/transactions", transactionRoutes);
 app.use("/api/v1/wallet", walletRoutes);
 app.use("/api/v1/withdrawals", withdrawalRoutes);
 app.use("/api/v1/razorpay", razorpayRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/kyc", kycRoutes);
 app.get("/", (req, res) => {
     res.status(200).json(new ApiResponse(200, null, "API is running..."));
 });

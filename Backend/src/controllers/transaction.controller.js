@@ -6,6 +6,12 @@ import { Withdrawal } from "../models/withdraw.model.js";
 import { Wallet } from "../models/walet.model.js";
 import { createNotification } from "../utils/createNotification.js";
 import { sendSMS } from "../services/sms.service.js";
+import {
+  consumeActionRateLimit,
+  DUPLICATE_WINDOW_MS,
+  HIGH_VALUE_TRANSACTION_THRESHOLD,
+  recordSecurityEvent
+} from "../utils/fraudProtection.js";
 import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -85,6 +91,65 @@ export const sendMoney = asyncHandler(async (req, res) => {
 
   if (senderId.toString() === receiverId) {
     throw new ApiError(400, "Cannot send money to yourself");
+  }
+
+  await consumeActionRateLimit({
+    userId: senderId.toString(),
+    action: "transfer",
+    limit: 6,
+    windowMs: 60 * 1000,
+    reason: "Too many transfer attempts. Please wait before trying again.",
+    route: req.originalUrl,
+    ipAddress: req.ip,
+    metadata: {
+      receiverId,
+      amount: parsedAmount
+    }
+  });
+
+  const duplicateTransfer = await Transaction.findOne({
+    sender: senderId,
+    receiver: receiverId,
+    amount: parsedAmount,
+    status: "success",
+    createdAt: {
+      $gte: new Date(Date.now() - DUPLICATE_WINDOW_MS)
+    }
+  });
+
+  if (duplicateTransfer) {
+    await recordSecurityEvent({
+      userId: senderId,
+      actionType: "duplicate_payment",
+      reason: "Duplicate transfer detected",
+      severity: "medium",
+      blocked: true,
+      route: req.originalUrl,
+      ipAddress: req.ip,
+      metadata: {
+        receiverId,
+        amount: parsedAmount,
+        transactionId: duplicateTransfer._id
+      }
+    });
+
+    throw new ApiError(409, "Duplicate transfer detected. Please wait before sending the same amount again.");
+  }
+
+  if (parsedAmount >= HIGH_VALUE_TRANSACTION_THRESHOLD) {
+    void recordSecurityEvent({
+      userId: senderId,
+      actionType: "high_value_transaction",
+      reason: `High value transfer of ₹${parsedAmount}`,
+      severity: "high",
+      blocked: false,
+      route: req.originalUrl,
+      ipAddress: req.ip,
+      metadata: {
+        receiverId,
+        amount: parsedAmount
+      }
+    });
   }
 
   const session = await mongoose.startSession();
