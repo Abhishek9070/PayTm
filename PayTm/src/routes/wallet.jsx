@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
+import { Skeleton } from "../components/ui/loading-state.jsx";
+import toast from "react-hot-toast";
 
 const balanceCards = [
   {
@@ -40,11 +42,13 @@ function Wallet() {
         }
       } catch (requestError) {
         if (isMounted) {
-          setError(
+          const message =
             requestError?.response?.data?.message ||
-              requestError?.message ||
-              "Unable to fetch wallet balance."
-          );
+            requestError?.message ||
+            "Unable to fetch wallet balance.";
+
+          setError(message);
+          toast.error(message);
         }
       } finally {
         if (isMounted) {
@@ -77,24 +81,32 @@ function Wallet() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">
-        {balanceCards.map((card) => {
-          const value = Number(wallet?.[card.key] ?? 0);
-
-          return (
-            <div
-              key={card.key}
-              className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur"
-            >
-              <div className={`h-1 w-16 rounded-full bg-linear-to-r ${card.gradient}`} />
-              <p className="mt-4 text-sm uppercase tracking-[0.2em] text-slate-400">
-                {card.label}
-              </p>
-              <div className="mt-3 text-3xl font-semibold text-white">
-                {loading ? "..." : `₹${value.toFixed(2)}`}
+        {loading
+          ? balanceCards.map((card) => (
+              <div key={card.key} className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+                <Skeleton className={`h-1 w-16 rounded-full bg-linear-to-r ${card.gradient}`} />
+                <Skeleton className="mt-4 h-4 w-28" />
+                <Skeleton className="mt-3 h-9 w-40" />
               </div>
-            </div>
-          );
-        })}
+            ))
+          : balanceCards.map((card) => {
+              const value = Number(wallet?.[card.key] ?? 0);
+
+              return (
+                <div
+                  key={card.key}
+                  className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur"
+                >
+                  <div className={`h-1 w-16 rounded-full bg-linear-to-r ${card.gradient}`} />
+                  <p className="mt-4 text-sm uppercase tracking-[0.2em] text-slate-400">
+                    {card.label}
+                  </p>
+                  <div className="mt-3 text-3xl font-semibold text-white">
+                    {`₹${value.toFixed(2)}`}
+                  </div>
+                </div>
+              );
+            })}
       </div>
     </section>
   );

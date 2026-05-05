@@ -1,5 +1,7 @@
 import { useState } from "react";
 import api from "../api/axios";
+import { LoadingButton, Spinner } from "../components/ui/loading-state.jsx";
+import toast from "react-hot-toast";
 
 function ErrorBox({ message }) {
 	if (!message) return null;
@@ -44,11 +46,14 @@ export default function SendMoney() {
 			const { data } = await api.post("/transactions/send", { receiverId, amount: parsedAmount });
 
 			setSuccess(data?.message || "Money sent successfully");
+			toast.success(data?.message || "Money sent successfully");
 			setReceiver("");
 			setAmount("");
 			setTimeout(() => setSuccess(null), 4000);
 		} catch (err) {
-			setError(err?.response?.data?.message || err.message || "Failed to send money");
+			const message = err?.response?.data?.message || err.message || "Failed to send money";
+			setError(message);
+			toast.error(message);
 		} finally {
 			setLoading(false);
 		}
@@ -63,7 +68,10 @@ export default function SendMoney() {
 			<form onSubmit={handleSend} className="max-w-md space-y-4">
 				<div>
 					<label className="mb-2 block text-sm font-medium text-slate-200">Receiver (user id or 10-digit phone)</label>
-					<input value={receiver} onChange={(e) => setReceiver(e.target.value)} placeholder="Enter user id or phone" className="w-full rounded-md bg-slate-800 px-3 py-2 text-sm text-white" />
+					<div className="relative">
+						<input value={receiver} onChange={(e) => setReceiver(e.target.value)} placeholder="Enter user id or phone" className="w-full rounded-md bg-slate-800 px-3 py-2 pr-10 text-sm text-white" />
+						{loading ? <Spinner className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300" /> : null}
+					</div>
 				</div>
 
 				<div>
@@ -76,7 +84,9 @@ export default function SendMoney() {
 				{success && <div className="rounded-md bg-emerald-900/40 p-3 text-sm text-emerald-200">{success}</div>}
 
 				<div className="flex items-center gap-2">
-					<button disabled={loading} className="rounded bg-sky-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{loading ? "Sending..." : "Send"}</button>
+					<LoadingButton loading={loading} className="rounded bg-sky-500 px-4 py-2 text-sm font-medium text-white">
+						Send
+					</LoadingButton>
 				</div>
 			</form>
 		</div>

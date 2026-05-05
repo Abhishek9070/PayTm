@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import { LoadingButton, StackSkeleton } from "../components/ui/loading-state.jsx";
+import toast from "react-hot-toast";
 
 function TransactionRow({ tx }) {
   const when = new Date(tx.createdAt).toLocaleString();
@@ -62,7 +64,9 @@ export default function History() {
         setTotalPages(data?.data?.pagination?.totalPages || 1);
       } catch (err) {
         if (cancelled) return;
-        setError(err?.response?.data?.message || err.message || "Failed to load transactions");
+        const message = err?.response?.data?.message || err.message || "Failed to load transactions";
+        setError(message);
+        toast.error(message);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -120,7 +124,7 @@ export default function History() {
       </section>
 
       <section className="space-y-3">
-        {loading && <div className="text-sm text-slate-400">Loading...</div>}
+        {loading ? <StackSkeleton rows={4} /> : null}
         {error && <div className="text-sm text-rose-400">{error}</div>}
 
         {!loading && transactions.length === 0 && <div className="text-sm text-slate-400">No transactions found.</div>}
@@ -134,8 +138,12 @@ export default function History() {
 
       <footer className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-40">Previous</button>
-          <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-40">Next</button>
+          <LoadingButton loading={loading} disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="rounded bg-slate-800 px-3 py-2 text-sm text-white">
+            Previous
+          </LoadingButton>
+          <LoadingButton loading={loading} disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="rounded bg-slate-800 px-3 py-2 text-sm text-white">
+            Next
+          </LoadingButton>
         </div>
 
         <div className="text-sm text-slate-400">Showing {transactions.length} items</div>

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext.jsx";
+import { LoadingButton } from "../components/ui/loading-state.jsx";
+import toast from "react-hot-toast";
 
 function Login() {
   const navigate = useNavigate();
@@ -22,7 +24,7 @@ function Login() {
     }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
 
@@ -33,26 +35,29 @@ function Login() {
 
     setSending(true);
 
-    api.post("/auth/login", {
-      phoneNumber: formData.phoneNumber,
-      password: formData.password
-    })
-      .then((response) => {
-        const authData = response?.data?.data ?? response?.data ?? {};
-        login(authData);
-        navigate("/dashboard");
-      })
-      .catch((requestError) => {
-        const message =
-          requestError?.response?.data?.message ||
-          requestError?.message ||
-          "Unable to log in right now.";
+    const toastId = toast.loading("Logging in...");
 
-        setError(message);
-      })
-      .finally(() => {
-        setSending(false);
+    try {
+      const response = await api.post("/auth/login", {
+        phoneNumber: formData.phoneNumber,
+        password: formData.password
       });
+
+      const authData = response?.data?.data ?? response?.data ?? {};
+      login(authData);
+      toast.success("Logged in successfully", { id: toastId });
+      navigate("/dashboard");
+    } catch (requestError) {
+      const message =
+        requestError?.response?.data?.message ||
+        requestError?.message ||
+        "Unable to log in right now.";
+
+      setError(message);
+      toast.error(message, { id: toastId });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -135,13 +140,13 @@ function Login() {
                   </div>
                 ) : null}
 
-                <button
+                <LoadingButton
                   type="submit"
-                  disabled={sending}
-                  className="flex w-full items-center justify-center rounded-2xl bg-linear-to-r from-sky-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110"
+                  loading={sending}
+                  className="flex w-full items-center justify-center rounded-2xl bg-linear-to-r from-sky-500 to-cyan-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {sending ? "Logging in..." : "Continue to dashboard"}
-                </button>
+                  Continue to dashboard
+                </LoadingButton>
 
                 <p className="text-center text-sm text-slate-300">
                   Need an account?{" "}

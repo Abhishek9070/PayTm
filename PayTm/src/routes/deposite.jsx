@@ -1,6 +1,8 @@
 import { useState } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import { LoadingButton, Skeleton } from "../components/ui/loading-state.jsx";
+import toast from "react-hot-toast";
 
 function loadRazorpayScript() {
 	return new Promise((resolve, reject) => {
@@ -30,6 +32,7 @@ export default function Deposit() {
 		if (!Number.isFinite(parsed) || parsed <= 0) return setError("Enter a valid amount greater than 0");
 
 		setLoading(true);
+		const orderToastId = toast.loading("Creating payment order...");
 
 		try {
 			const { data } = await api.post("/razorpay/create-order", { amount: parsed });
@@ -42,6 +45,7 @@ export default function Deposit() {
 			}
 
 			await loadRazorpayScript();
+				toast.success("Payment checkout ready", { id: orderToastId });
 
 			const options = {
 				key: keyId,
@@ -54,6 +58,7 @@ export default function Deposit() {
 					try {
 						const verifyResp = await api.post("/razorpay/verify-payment", response);
 							setSuccess(verifyResp?.data?.message || "Payment verified and wallet credited");
+								toast.success(verifyResp?.data?.message || "Payment verified and wallet credited");
 							setAmount("");
 							// refresh wallet balance
 							try {
@@ -64,7 +69,9 @@ export default function Deposit() {
 							}
 						setTimeout(() => setSuccess(null), 4000);
 					} catch (err) {
-						setError(err?.response?.data?.message || err.message || "Verification failed");
+							const message = err?.response?.data?.message || err.message || "Verification failed";
+							setError(message);
+							toast.error(message);
 					}
 				},
 				prefill: {
@@ -78,10 +85,14 @@ export default function Deposit() {
 			const rzp = new window.Razorpay(options);
 			rzp.open();
 			rzp.on("payment.failed", function (response) {
-				setError(response?.error?.description || "Payment failed");
+					const message = response?.error?.description || "Payment failed";
+					setError(message);
+					toast.error(message);
 			});
 		} catch (err) {
-			setError(err?.response?.data?.message || err.message || "Failed to create order");
+			const message = err?.response?.data?.message || err.message || "Failed to create order";
+			setError(message);
+			toast.error(message, { id: orderToastId });
 		} finally {
 			setLoading(false);
 		}
@@ -90,15 +101,17 @@ export default function Deposit() {
 	return (
 		<div className="space-y-6">
 			<header>
-				<h1 className="text-2xl font-semibold text-slate-900">Deposit (Razorpay)</h1>
-				{balance !== null && (
+				<h1 className="text-2xl font-semibold text-white">Deposit (Razorpay)</h1>
+				{balance !== null ? (
 					<div className="mt-1 text-sm text-slate-600">Current balance: ₹{balance}</div>
+				) : (
+					<Skeleton className="mt-2 h-4 w-36" />
 				)}
 			</header>
 
 			<form className="max-w-md space-y-4" onSubmit={handleCreateOrder}>
 				<div>
-					<label className="mb-2 block text-sm font-medium text-slate-700">Amount (₹)</label>
+					<label className="mb-2 block text-sm font-medium text-white-400">Amount (₹)</label>
 					<input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-slate-900" />
 				</div>
 
@@ -106,7 +119,9 @@ export default function Deposit() {
 				{success && <div className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{success}</div>}
 
 				<div className="flex items-center gap-2">
-					<button disabled={loading} className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{loading ? "Preparing..." : "Pay with Razorpay"}</button>
+					<LoadingButton loading={loading} className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white">
+						Pay with Razorpay
+					</LoadingButton>
 				</div>
 			</form>
 		</div>

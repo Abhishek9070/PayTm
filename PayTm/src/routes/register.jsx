@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext.jsx";
+import { LoadingButton } from "../components/ui/loading-state.jsx";
+import toast from "react-hot-toast";
 
 function Register() {
   const navigate = useNavigate();
@@ -24,7 +26,7 @@ function Register() {
     }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
 
@@ -40,28 +42,31 @@ function Register() {
 
     setSending(true);
 
-    api.post("/auth/register", {
-      fullName: formData.fullName,
-      phoneNumber: formData.phoneNumber,
-      email: formData.email,
-      password: formData.password
-    })
-      .then((response) => {
-        const authData = response?.data?.data ?? response?.data ?? {};
-        login(authData);
-        navigate("/dashboard");
-      })
-      .catch((requestError) => {
-        const message =
-          requestError?.response?.data?.message ||
-          requestError?.message ||
-          "Unable to create your account right now.";
+    const toastId = toast.loading("Creating account...");
 
-        setError(message);
-      })
-      .finally(() => {
-        setSending(false);
+    try {
+      const response = await api.post("/auth/register", {
+        fullName: formData.fullName,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email,
+        password: formData.password
       });
+
+      const authData = response?.data?.data ?? response?.data ?? {};
+      login(authData);
+      toast.success("Account created successfully", { id: toastId });
+      navigate("/dashboard");
+    } catch (requestError) {
+      const message =
+        requestError?.response?.data?.message ||
+        requestError?.message ||
+        "Unable to create your account right now.";
+
+      setError(message);
+      toast.error(message, { id: toastId });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -164,13 +169,13 @@ function Register() {
                   </div>
                 ) : null}
 
-                <button
+                <LoadingButton
                   type="submit"
-                  disabled={sending}
-                  className="flex w-full items-center justify-center rounded-2xl bg-linear-to-r from-amber-300 to-orange-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110"
+                  loading={sending}
+                  className="flex w-full items-center justify-center rounded-2xl bg-linear-to-r from-amber-300 to-orange-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {sending ? "Creating account..." : "Create account"}
-                </button>
+                  Create account
+                </LoadingButton>
 
                 <p className="text-center text-sm text-slate-300">
                   Already have access?{" "}

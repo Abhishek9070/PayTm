@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
+import { LoadingButton, StackSkeleton } from "../components/ui/loading-state.jsx";
+import toast from "react-hot-toast";
 
 function WithdrawalRow({ w }) {
   return (
@@ -25,16 +27,20 @@ export default function WithdrawalPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadHistory() {
+      setHistoryLoading(true);
       try {
         const { data } = await api.get("/withdrawals/my");
         if (!cancelled) setHistory(data?.data || []);
       } catch (err) {
-        // ignore for now
+        toast.error(err?.response?.data?.message || err.message || "Failed to load withdrawal history");
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
       }
     }
 
@@ -58,12 +64,15 @@ export default function WithdrawalPage() {
     try {
       const { data } = await api.post("/withdrawals", { amount: parsed, upiId });
       setSuccess(data?.message || "Withdrawal request created");
+      toast.success(data?.message || "Withdrawal request created");
       setAmount("");
       setUpiId("");
       setHistory((h) => [data?.data, ...h]);
       setTimeout(() => setSuccess(null), 4000);
     } catch (err) {
-      setError(err?.response?.data?.message || err.message || "Failed to create withdrawal request");
+      const message = err?.response?.data?.message || err.message || "Failed to create withdrawal request";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -90,13 +99,16 @@ export default function WithdrawalPage() {
         {success && <div className="rounded-md bg-emerald-900/40 p-3 text-sm text-emerald-200">{success}</div>}
 
         <div className="flex items-center gap-2">
-          <button disabled={loading} className="rounded bg-sky-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{loading ? "Submitting..." : "Request Withdrawal"}</button>
+          <LoadingButton loading={loading} className="rounded bg-sky-500 px-4 py-2 text-sm font-medium text-white">
+            Request Withdrawal
+          </LoadingButton>
         </div>
       </form>
 
       <section className="space-y-3">
         <h2 className="text-lg font-medium text-white">Withdrawal History</h2>
-        {history.length === 0 && <div className="text-sm text-slate-400">No withdrawals found.</div>}
+        {historyLoading ? <StackSkeleton rows={3} /> : null}
+        {!historyLoading && history.length === 0 && <div className="text-sm text-slate-400">No withdrawals found.</div>}
         <div className="grid gap-3">
           {history.map((w) => <WithdrawalRow key={w._id} w={w} />)}
         </div>
