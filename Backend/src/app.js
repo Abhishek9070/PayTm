@@ -11,15 +11,31 @@ import { handleRazorpayWebhook } from "./controllers/razorpay.controller.js";
 import razorpayRoutes from "./routes/razorpay.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
 import kycRoutes from "./routes/kyc.routes.js";
+import userRoutes from "./routes/user.routes.js";
 
 const app = express();
 
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+
 app.use(
     cors({
-        origin: process.env.CORS_ORIGIN,
-        credentials: true
+        origin: function (origin, callback) {
+            if (!origin) return callback(null, true);
+            return allowedOrigins.indexOf(origin) !== -1
+                ? callback(null, true)
+                : callback(new Error("CORS origin denied"));
+        },
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
     })
 );
+
+// Preflight will be handled by the global CORS middleware above.
+// Removed explicit app.options("*") because path-to-regexp rejects '*'.
 
 app.use(
     "/api/v1/razorpay/webhook",
@@ -39,6 +55,7 @@ app.use("/api/v1/withdrawals", withdrawalRoutes);
 app.use("/api/v1/razorpay", razorpayRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/kyc", kycRoutes);
+app.use("/api/v1/users", userRoutes);
 app.get("/", (req, res) => {
     res.status(200).json(new ApiResponse(200, null, "API is running..."));
 });

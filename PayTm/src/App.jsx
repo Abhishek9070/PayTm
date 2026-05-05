@@ -1,12 +1,39 @@
 
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import AppLayout from "./layouts/AppLayout.jsx";
+import Login from "./routes/login.jsx";
+import Register from "./routes/register.jsx";
+import Dashboard from "./routes/dashboard.jsx";
+import Wallet from "./routes/wallet.jsx";
+import History from "./routes/history.jsx";
+import SendMoney from "./routes/sendMoney.jsx";
+import WithdrawalPage from "./routes/withdrawal.jsx";
+import Deposit from "./routes/deposite.jsx";
+import { BackgroundWrapper } from "./components/ui/background-wrapper.tsx";
 
 function App() {
-  
   return (
-    <div className="flex justify-center">
-      <h1 className="text-blue-600 bg-red-500 text-2xl border-l-amber-300">PayTm clone</h1>
-    </div>
-  )
+    <BrowserRouter>
+      <BackgroundWrapper variant="grid-purple">
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="wallet" element={<Wallet />} />
+            <Route path="deposit" element={<Deposit />} />
+            <Route path="transactions" element={<History />} />
+            <Route path="send" element={<SendMoney />} />
+            <Route path="withdrawal" element={<WithdrawalPage />} />
+          </Route>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/signup" element={<Register />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BackgroundWrapper>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;

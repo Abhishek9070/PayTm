@@ -107,10 +107,15 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
     status: "pending"
   });
 
+  const responsePayload = {
+    order,
+    keyId: process.env.RAZORPAY_KEY_ID || null
+  };
+
   return res.status(200).json(
     new ApiResponse(
       200,
-      order,
+      responsePayload,
       "Razorpay order created successfully"
     )
   );

@@ -5,7 +5,6 @@ import { Deposit } from "../models/deposit.model.js";
 import { Withdrawal } from "../models/withdraw.model.js";
 import { Wallet } from "../models/walet.model.js";
 import { createNotification } from "../utils/createNotification.js";
-import { sendSMS } from "../services/sms.service.js";
 import {
   consumeActionRateLimit,
   DUPLICATE_WINDOW_MS,
@@ -227,17 +226,6 @@ export const sendMoney = asyncHandler(async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
-
-    void Promise.allSettled([
-      sendSMS({
-        to: sender.phoneNumber,
-        message: `You sent ₹${parsedAmount} successfully`
-      }),
-      sendSMS({
-        to: receiver.phoneNumber,
-        message: `You received ₹${parsedAmount} successfully`
-      })
-    ]);
 
     return res.status(200).json(
       new ApiResponse(200, transaction, "Transaction successful")

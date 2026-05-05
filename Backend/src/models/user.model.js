@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 const fileAssetSchema = new Schema(
   {
     url: {
@@ -41,6 +42,12 @@ const userSchema = new Schema({
     required: true,
     unique: true,
     match: /^\d{10}$/
+  },
+
+  password: {
+    type: String,
+    required: true,
+    select: false
   },
 
   accessToken: {
@@ -154,4 +161,17 @@ userSchema.methods.generateRefreshToken = function () {
 
   return token;
 };
+
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) {
+    return;
+  }
+
+  this.password = await bcrypt.hash(this.password, 10);
+});
+
+userSchema.methods.isPasswordCorrect = async function (enteredPassword) {
+  return bcrypt.compare(enteredPassword, this.password);
+};
+
 export const User = mongoose.model("User", userSchema);

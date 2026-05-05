@@ -1,12 +1,15 @@
-import { OTP } from "../models/otp.model.js";
 import { User } from "../models/user.model.js";
 import { Wallet } from "../models/walet.model.js";
 import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
-
+ 
 const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+const isValidPhoneNumber = (phoneNumber) => {
+  return /^\d{10}$/.test(phoneNumber);
 };
 
 const cookieOptions = {
@@ -15,101 +18,113 @@ const cookieOptions = {
   sameSite: "lax"
 };
 
-export const sendOtp = asyncHandler(async (req, res) => {
-  const { phoneNumber } = req.body;
+const buildSafeUser = (user) => ({
+  _id: user._id,
+  fullName: user.fullName,
+  email: user.email,
+  phoneNumber: user.phoneNumber,
+  upiId: user.upiId,
+  qrCode: user.qrCode,
+  kyc: user.kyc,
+  isVerified: user.isVerified,
+  isAdmin: user.isAdmin
+});
 
-  if (!phoneNumber || !/^\d{10}$/.test(phoneNumber)) {
+const issueAuthTokens = async (user) => {
+  const accessToken = user.generateAccessToken();
+  const refreshToken = user.generateRefreshToken();
+
+  user.refreshToken = refreshToken;
+  await user.save({ validateBeforeSave: false });
+
+  return { accessToken, refreshToken };
+};
+
+export const registerUser = asyncHandler(async (req, res) => {
+  const { fullName, phoneNumber, email, password } = req.body;
+
+  if (!fullName || !phoneNumber || !password) {
+    throw new ApiError(400, "fullName, phoneNumber, and password are required");
+  }
+
+  if (!isValidPhoneNumber(phoneNumber)) {
     throw new ApiError(400, "Invalid phone number");
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
+  if (email && !isValidEmail(email)) {
+    throw new ApiError(400, "Invalid email format");
+  }
 
-  await OTP.deleteMany({ phoneNumber });
-  await OTP.create({
+  const existingUser = await User.findOne({ phoneNumber });
+
+  if (existingUser) {
+    throw new ApiError(409, "Phone number is already registered");
+  }
+
+  if (email) {
+    const existingEmail = await User.findOne({ email: email.toLowerCase() });
+
+    if (existingEmail) {
+      throw new ApiError(409, "Email is already registered");
+    }
+  }
+
+  const user = await User.create({
+    fullName,
     phoneNumber,
-    otp,
-    expiresAt
+    email: email || undefined,
+    password,
+    upiId: `user${phoneNumber}@ptm`,
+    qrCode: `QR_${Date.now()}`,
+    isVerified: true
   });
 
-  console.log(`OTP for ${phoneNumber}: ${otp}`);
+  await Wallet.create({
+    userId: user._id,
+    balance: 0
+  });
+
+  const { accessToken, refreshToken } = await issueAuthTokens(user);
 
   return res
     .status(200)
-    .json(new ApiResponse(200, null, "OTP sent successfully"));
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: buildSafeUser(user),
+          accessToken,
+          refreshToken
+        },
+        "Signup successful"
+      )
+    );
 });
 
-export const verifyOtp = asyncHandler(async (req, res) => {
-  const { phoneNumber, otp, fullName, email } = req.body;
+export const loginUser = asyncHandler(async (req, res) => {
+  const { phoneNumber, password } = req.body;
 
-  if (!phoneNumber || !otp) {
-    throw new ApiError(400, "Phone number and OTP required");
+  if (!phoneNumber || !password) {
+    throw new ApiError(400, "Phone number and password are required");
   }
 
-  const otpRecord = await OTP.findOne({ phoneNumber });
-
-  if (!otpRecord) {
-    throw new ApiError(400, "OTP not found");
+  if (!isValidPhoneNumber(phoneNumber)) {
+    throw new ApiError(400, "Invalid phone number");
   }
 
-  if (otpRecord.expiresAt < new Date()) {
-    throw new ApiError(400, "OTP expired");
+  const user = await User.findOne({ phoneNumber }).select("+password");
+
+  if (!user) {
+    throw new ApiError(401, "Invalid phone number or password");
   }
 
-  const isOtpValid = await otpRecord.isOtpCorrect(otp);
+  const isPasswordValid = await user.isPasswordCorrect(password);
 
-  if (!isOtpValid) {
-    throw new ApiError(400, "Invalid OTP");
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid phone number or password");
   }
 
-  await OTP.deleteMany({ phoneNumber });
-
-  let existingUser = await User.findOne({ phoneNumber });
-
-  if (!existingUser) {
-    if (!fullName || !email) {
-      throw new ApiError(400, "fullName and email are required for new users");
-    }
-
-    if (!isValidEmail(email)) {
-      throw new ApiError(400, "Invalid email format");
-    }
-
-    existingUser = await User.create({
-      fullName,
-      email,
-      phoneNumber,
-      upiId: `user${phoneNumber}@ptm`,
-      qrCode: `QR_${Date.now()}`,
-      isVerified: true
-    });
-
-    await Wallet.create({
-      userId: existingUser._id,
-      balance: 0
-    });
-  } else if (!existingUser.isVerified) {
-    existingUser.isVerified = true;
-    await existingUser.save();
-  }
-
-  const accessToken = existingUser.generateAccessToken();
-  const refreshToken = existingUser.generateRefreshToken();
-
-  existingUser.refreshToken = refreshToken;
-  await existingUser.save({ validateBeforeSave: false });
-
-  const safeUser = {
-    _id: existingUser._id,
-    fullName: existingUser.fullName,
-    email: existingUser.email,
-    phoneNumber: existingUser.phoneNumber,
-    upiId: existingUser.upiId,
-    qrCode: existingUser.qrCode,
-    kyc: existingUser.kyc,
-    isVerified: existingUser.isVerified,
-    isAdmin: existingUser.isAdmin
-  };
+  const { accessToken, refreshToken } = await issueAuthTokens(user);
 
   res.cookie("accessToken", accessToken, {
     ...cookieOptions,
@@ -125,7 +140,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     new ApiResponse(
       200,
       {
-        user: safeUser,
+        user: buildSafeUser(user),
         accessToken,
         refreshToken
       },

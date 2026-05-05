@@ -22,7 +22,12 @@ export const getWalletBalance = asyncHandler(async (req, res) => {
   return res.status(200).json(
     new ApiResponse(
       200,
-      { balance: wallet.balance },
+      {
+        availableBalance: wallet.balance,
+        lockedBalance: wallet.lockedBalance ?? 0,
+        totalBalance: wallet.balance + (wallet.lockedBalance ?? 0),
+        balance: wallet.balance
+      },
       "Wallet balance fetched successfully"
     )
   );

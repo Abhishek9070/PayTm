@@ -1,9 +1,8 @@
 import mongoose from "mongoose";
 import { Wallet } from "../models/walet.model.js";
-import { User } from "../models/user.model.js";
 import { Withdrawal } from "../models/withdraw.model.js";
 import { Transaction } from "../models/transaction.model.js"; 
-import { sendSMS } from "../services/sms.service.js";
+import { createNotification } from "../utils/createNotification.js";
 import {
   consumeActionRateLimit,
   recordSecurityEvent,
@@ -13,20 +12,56 @@ import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
-const notifyWithdrawalApproved = async ({ userId, amount }) => {
+const notifyWithdrawalRequested = async ({ userId, amount, upiId }) => {
   try {
-    const user = await User.findById(userId).select("phoneNumber");
-
-    if (!user?.phoneNumber) {
-      return;
-    }
-
-    void sendSMS({
-      to: user.phoneNumber,
-      message: `₹${amount} withdrawn successfully`
+    await createNotification({
+      userId,
+      title: "Withdrawal Request Created",
+      message: `Your withdrawal request of ₹${amount} has been created for ${upiId}.`,
+      type: "withdrawal",
+      metadata: {
+        amount,
+        upiId,
+        status: "pending"
+      }
     });
   } catch (error) {
-    console.log("Withdrawal SMS notification failed:", error.message);
+    console.log("Withdrawal request notification failed:", error.message);
+  }
+};
+
+const notifyWithdrawalApproved = async ({ userId, amount }) => {
+  try {
+    await createNotification({
+      userId,
+      title: "Withdrawal Approved",
+      message: `Your withdrawal of ₹${amount} has been approved successfully.`,
+      type: "withdrawal",
+      metadata: {
+        amount,
+        status: "approved"
+      }
+    });
+  } catch (error) {
+    console.log("Withdrawal approval notification failed:", error.message);
+  }
+};
+
+const notifyWithdrawalRejected = async ({ userId, amount, reason }) => {
+  try {
+    await createNotification({
+      userId,
+      title: "Withdrawal Rejected",
+      message: `Your withdrawal of ₹${amount} was rejected${reason ? `: ${reason}` : ""}.`,
+      type: "withdrawal",
+      metadata: {
+        amount,
+        reason: reason || null,
+        status: "rejected"
+      }
+    });
+  } catch (error) {
+    console.log("Withdrawal rejection notification failed:", error.message);
   }
 };
 
@@ -135,6 +170,12 @@ export const createWithdrawal = asyncHandler(async (req, res) => {
   }
 
   const withdrawal = await Withdrawal.create({
+    userId,
+    amount: parsedAmount,
+    upiId: upiId.trim().toLowerCase()
+  });
+
+  void notifyWithdrawalRequested({
     userId,
     amount: parsedAmount,
     upiId: upiId.trim().toLowerCase()
@@ -290,6 +331,12 @@ export const rejectWithdrawal = asyncHandler(async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    void notifyWithdrawalRejected({
+      userId: withdrawal.userId,
+      amount: withdrawal.amount,
+      reason: withdrawal.rejectionReason
+    });
 
     return res.status(200).json(
       new ApiResponse(200, withdrawal, "Withdrawal rejected")
