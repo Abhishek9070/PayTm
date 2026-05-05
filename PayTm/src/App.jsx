@@ -9,12 +9,10 @@ import History from "./routes/history.jsx";
 import SendMoney from "./routes/sendMoney.jsx";
 import WithdrawalPage from "./routes/withdrawal.jsx";
 import Deposit from "./routes/deposite.jsx";
-import { BackgroundWrapper } from "./components/ui/background-wrapper.tsx";
 
 function App() {
   return (
     <BrowserRouter>
-      <BackgroundWrapper variant="grid-purple">
         <Routes>
           <Route element={<AppLayout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
@@ -31,7 +29,6 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-      </BackgroundWrapper>
     </BrowserRouter>
   );
 }
