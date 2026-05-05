@@ -19,6 +19,7 @@ export default function Deposit() {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(null);
 	const [success, setSuccess] = useState(null);
+	const [balance, setBalance] = useState(null);
 
 	const handleCreateOrder = async (e) => {
 		e.preventDefault();
@@ -52,8 +53,15 @@ export default function Deposit() {
 				handler: async function (response) {
 					try {
 						const verifyResp = await api.post("/razorpay/verify-payment", response);
-						setSuccess(verifyResp?.data?.message || "Payment verified and wallet credited");
-						setAmount("");
+							setSuccess(verifyResp?.data?.message || "Payment verified and wallet credited");
+							setAmount("");
+							// refresh wallet balance
+							try {
+								const bal = await api.get("/wallet/balance");
+								setBalance(bal?.data?.data ?? null);
+							} catch (err) {
+								// ignore balance refresh errors
+							}
 						setTimeout(() => setSuccess(null), 4000);
 					} catch (err) {
 						setError(err?.response?.data?.message || err.message || "Verification failed");
@@ -64,7 +72,7 @@ export default function Deposit() {
 					email: user?.email,
 					contact: user?.phoneNumber
 				},
-				theme: { color: "#0ea5a4" }
+					theme: { color: "#ef4444" }
 			};
 
 			const rzp = new window.Razorpay(options);
@@ -82,20 +90,23 @@ export default function Deposit() {
 	return (
 		<div className="space-y-6">
 			<header>
-				<h1 className="text-2xl font-semibold text-white">Deposit (Razorpay)</h1>
+				<h1 className="text-2xl font-semibold text-slate-900">Deposit (Razorpay)</h1>
+				{balance !== null && (
+					<div className="mt-1 text-sm text-slate-600">Current balance: ₹{balance}</div>
+				)}
 			</header>
 
 			<form className="max-w-md space-y-4" onSubmit={handleCreateOrder}>
 				<div>
-					<label className="mb-2 block text-sm font-medium text-slate-200">Amount (₹)</label>
-					<input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="w-full rounded-md bg-slate-800 px-3 py-2 text-sm text-white" />
+					<label className="mb-2 block text-sm font-medium text-slate-700">Amount (₹)</label>
+					<input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-slate-900" />
 				</div>
 
-				{error && <div className="rounded-md bg-rose-900/40 p-3 text-sm text-rose-300">{error}</div>}
-				{success && <div className="rounded-md bg-emerald-900/40 p-3 text-sm text-emerald-200">{success}</div>}
+				{error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+				{success && <div className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{success}</div>}
 
 				<div className="flex items-center gap-2">
-					<button disabled={loading} className="rounded bg-sky-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{loading ? "Preparing..." : "Pay with Razorpay"}</button>
+					<button disabled={loading} className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{loading ? "Preparing..." : "Pay with Razorpay"}</button>
 				</div>
 			</form>
 		</div>
