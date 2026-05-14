@@ -11,6 +11,8 @@ import SendMoney from "./routes/sendMoney.jsx";
 import WithdrawalPage from "./routes/withdrawal.jsx";
 import Deposit from "./routes/deposite.jsx";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
+import Profile from "./routes/profile.jsx";
+import Kyc from "./routes/kyc.jsx";
 
 function App() {
   return (
@@ -49,6 +51,8 @@ function App() {
               <Route path="transactions" element={<History />} />
               <Route path="send" element={<SendMoney />} />
               <Route path="withdrawal" element={<WithdrawalPage />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="kyc" element={<Kyc />} />
             </Route>
           </Route>
           <Route path="/login" element={<Login />} />

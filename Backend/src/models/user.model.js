@@ -70,21 +70,53 @@ const userSchema = new Schema({
     type: String
   },
 
+  profileImage: {
+    type: fileAssetSchema,
+    default: () => ({})
+  },
+
   kyc: {
     status: {
       type: String,
       enum: ["not_submitted", "pending", "approved", "rejected"],
       default: "not_submitted"
     },
-    profileImage: {
-      type: fileAssetSchema,
-      default: () => ({})
+    documentType: {
+      type: String,
+      enum: ["aadhaar", "pan"],
+      default: null
     },
-    aadhaarImage: {
-      type: fileAssetSchema,
-      default: () => ({})
+    fullName: {
+      type: String,
+      default: null,
+      trim: true
     },
-    panImage: {
+    phoneNumber: {
+      type: String,
+      default: null,
+      trim: true
+    },
+    address: {
+      type: String,
+      default: null,
+      trim: true
+    },
+    gender: {
+      type: String,
+      default: null,
+      trim: true
+    },
+    aadhaarNumber: {
+      type: String,
+      default: null,
+      trim: true
+    },
+    panNumber: {
+      type: String,
+      default: null,
+      trim: true
+    },
+    documentImage: {
       type: fileAssetSchema,
       default: () => ({})
     },

@@ -3,7 +3,7 @@ import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
-const requiredKycFields = ["profileImage", "aadhaarImage", "panImage"];
+const allowedDocumentTypes = new Set(["aadhaar", "pan"]);
 
 const toCloudinaryAsset = (file) => ({
   url: file.path,
@@ -12,18 +12,43 @@ const toCloudinaryAsset = (file) => ({
   uploadedAt: new Date()
 });
 
-const getUploadedFile = (files, fieldName) => files?.[fieldName]?.[0] || null;
-
 export const submitKycDocuments = asyncHandler(async (req, res) => {
-  const missingFields = requiredKycFields.filter(
-    (fieldName) => !getUploadedFile(req.files, fieldName)
-  );
+  const {
+    documentType,
+    fullName,
+    phoneNumber,
+    address,
+    gender,
+    aadhaarNumber,
+    panNumber
+  } = req.body;
 
-  if (missingFields.length > 0) {
-    throw new ApiError(
-      400,
-      `Missing KYC files: ${missingFields.join(", ")}`
-    );
+  const normalizedDocumentType = String(documentType || "").trim().toLowerCase();
+  const normalizedFullName = String(fullName || "").trim();
+  const normalizedPhoneNumber = String(phoneNumber || "").trim();
+  const normalizedAddress = String(address || "").trim();
+  const normalizedGender = String(gender || "").trim();
+  const normalizedAadhaarNumber = String(aadhaarNumber || "").trim();
+  const normalizedPanNumber = String(panNumber || "").trim();
+
+  if (!allowedDocumentTypes.has(normalizedDocumentType)) {
+    throw new ApiError(400, "documentType must be aadhaar or pan");
+  }
+
+  if (!normalizedFullName || !normalizedPhoneNumber || !normalizedAddress || !normalizedGender) {
+    throw new ApiError(400, "fullName, phoneNumber, address, and gender are required");
+  }
+
+  if (normalizedDocumentType === "aadhaar" && !normalizedAadhaarNumber) {
+    throw new ApiError(400, "aadhaarNumber is required for Aadhaar KYC");
+  }
+
+  if (normalizedDocumentType === "pan" && !normalizedPanNumber) {
+    throw new ApiError(400, "panNumber is required for PAN KYC");
+  }
+
+  if (!req.file) {
+    throw new ApiError(400, "documentImage is required");
   }
 
   const user = await User.findById(req.user._id);
@@ -34,9 +59,14 @@ export const submitKycDocuments = asyncHandler(async (req, res) => {
 
   user.kyc = {
     status: "pending",
-    profileImage: toCloudinaryAsset(getUploadedFile(req.files, "profileImage")),
-    aadhaarImage: toCloudinaryAsset(getUploadedFile(req.files, "aadhaarImage")),
-    panImage: toCloudinaryAsset(getUploadedFile(req.files, "panImage")),
+    documentType: normalizedDocumentType,
+    fullName: normalizedFullName,
+    phoneNumber: normalizedPhoneNumber,
+    address: normalizedAddress,
+    gender: normalizedGender,
+    aadhaarNumber: normalizedDocumentType === "aadhaar" ? normalizedAadhaarNumber : null,
+    panNumber: normalizedDocumentType === "pan" ? normalizedPanNumber : null,
+    documentImage: toCloudinaryAsset(req.file),
     submittedAt: new Date(),
     reviewedAt: null,
     reviewedBy: null,

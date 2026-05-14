@@ -7,9 +7,33 @@ import { verifyRefreshToken } from "../middlewares/refreshToken.middleware.js";
 const router = express.Router();
 
 router.get("/profile", verifyJWT, (req, res) => {
+  const {
+    _id,
+    fullName,
+    email,
+    phoneNumber,
+    upiId,
+    qrCode,
+    profileImage,
+    kyc,
+    isVerified,
+    isAdmin
+  } = req.user;
+
   res.json({
     success: true,
-    user: req.user
+    user: {
+      _id,
+      fullName,
+      email,
+      phoneNumber,
+      upiId,
+      qrCode,
+      profileImage: profileImage || kyc?.profileImage || null,
+      kyc,
+      isVerified,
+      isAdmin
+    }
   });
 });
 router.post("/register", registerUser);

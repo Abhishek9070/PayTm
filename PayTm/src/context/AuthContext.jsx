@@ -62,6 +62,17 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const updateUser = (nextUser) => {
+    setUser(nextUser ?? null);
+
+    if (nextUser) {
+      localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(nextUser));
+      return;
+    }
+
+    localStorage.removeItem(STORAGE_KEYS.user);
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -76,6 +87,7 @@ export function AuthProvider({ children }) {
       token,
       loading,
       login,
+      updateUser,
       logout
     }),
     [user, token, loading]

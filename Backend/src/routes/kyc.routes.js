@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { isAdmin } from "../middlewares/admin.middleware.js";
-import { uploadKycDocuments } from "../middlewares/kycUpload.middleware.js";
+import { uploadKycDocument } from "../middlewares/kycUpload.middleware.js";
 import {
   reviewKycSubmission,
   submitKycDocuments
@@ -12,11 +12,7 @@ const router = Router();
 router.post(
   "/submit",
   verifyJWT,
-  uploadKycDocuments.fields([
-    { name: "profileImage", maxCount: 1 },
-    { name: "aadhaarImage", maxCount: 1 },
-    { name: "panImage", maxCount: 1 }
-  ]),
+  uploadKycDocument.single("documentImage"),
   submitKycDocuments
 );
 

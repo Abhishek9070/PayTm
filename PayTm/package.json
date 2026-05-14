@@ -16,6 +16,7 @@
     "clsx": "^2.0.0",
     "framer-motion": "^12.38.0",
     "postcss": "^8.5.10",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-hot-toast": "^2.6.0",

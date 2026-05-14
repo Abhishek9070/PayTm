@@ -25,6 +25,7 @@ const buildSafeUser = (user) => ({
   phoneNumber: user.phoneNumber,
   upiId: user.upiId,
   qrCode: user.qrCode,
+  profileImage: user.profileImage || user.kyc?.profileImage || null,
   kyc: user.kyc,
   isVerified: user.isVerified,
   isAdmin: user.isAdmin
