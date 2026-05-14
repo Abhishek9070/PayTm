@@ -10,6 +10,7 @@ import History from "./routes/history.jsx";
 import SendMoney from "./routes/sendMoney.jsx";
 import WithdrawalPage from "./routes/withdrawal.jsx";
 import Deposit from "./routes/deposite.jsx";
+import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 
 function App() {
   return (
@@ -39,14 +40,16 @@ function App() {
         }}
       />
         <Routes>
-          <Route element={<AppLayout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="wallet" element={<Wallet />} />
-            <Route path="deposit" element={<Deposit />} />
-            <Route path="transactions" element={<History />} />
-            <Route path="send" element={<SendMoney />} />
-            <Route path="withdrawal" element={<WithdrawalPage />} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AppLayout />}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="wallet" element={<Wallet />} />
+              <Route path="deposit" element={<Deposit />} />
+              <Route path="transactions" element={<History />} />
+              <Route path="send" element={<SendMoney />} />
+              <Route path="withdrawal" element={<WithdrawalPage />} />
+            </Route>
           </Route>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

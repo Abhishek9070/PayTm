@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { LoadingButton, StackSkeleton } from "../components/ui/loading-state.jsx";
@@ -28,6 +29,7 @@ function TransactionRow({ tx }) {
 
 export default function History() {
   const { user } = useAuth();
+  const refreshCounter = useSelector(state => state.ui.transactionRefreshCounter);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -40,7 +42,7 @@ export default function History() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const query = useMemo(() => ({ page, limit, type, status, startDate, endDate }), [page, limit, type, status, startDate, endDate]);
+  const query = useMemo(() => ({ page, limit, type, status, startDate, endDate, refreshCounter }), [page, limit, type, status, startDate, endDate, refreshCounter]);
 
   useEffect(() => {
     let cancelled = false;

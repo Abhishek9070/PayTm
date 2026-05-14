@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import api from "../api/axios";
 import { LoadingButton, Spinner } from "../components/ui/loading-state.jsx";
+import { triggerTransactionRefresh } from "../store/uiSlice";
 import toast from "react-hot-toast";
 
 function ErrorBox({ message }) {
@@ -9,6 +12,8 @@ function ErrorBox({ message }) {
 }
 
 export default function SendMoney() {
+	const navigate = useNavigate();
+	const dispatch = useDispatch();
 	const [receiver, setReceiver] = useState("");
 	const [amount, setAmount] = useState("");
 	const [loading, setLoading] = useState(false);
@@ -49,7 +54,15 @@ export default function SendMoney() {
 			toast.success(data?.message || "Money sent successfully");
 			setReceiver("");
 			setAmount("");
-			setTimeout(() => setSuccess(null), 4000);
+			
+			// Trigger refresh for wallet and transaction history
+			dispatch(triggerTransactionRefresh());
+			
+			// Navigate to wallet to show updated balance
+			setTimeout(() => {
+				navigate("/wallet", { replace: false });
+			}, 1500);
+			
 		} catch (err) {
 			const message = err?.response?.data?.message || err.message || "Failed to send money";
 			setError(message);
@@ -84,7 +97,7 @@ export default function SendMoney() {
 				{success && <div className="rounded-md bg-emerald-900/40 p-3 text-sm text-emerald-200">{success}</div>}
 
 				<div className="flex items-center gap-2">
-					<LoadingButton loading={loading} className="rounded bg-sky-500 px-4 py-2 text-sm font-medium text-white">
+					<LoadingButton type="submit" loading={loading} className="rounded bg-sky-500 px-4 py-2 text-sm font-medium text-white">
 						Send
 					</LoadingButton>
 				</div>

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import api from "../api/axios";
+import { useAuth } from "../context/AuthContext.jsx";
 import { Skeleton } from "../components/ui/loading-state.jsx";
 import toast from "react-hot-toast";
 
@@ -22,6 +24,8 @@ const balanceCards = [
 ];
 
 function Wallet() {
+  const { user, loading: authLoading } = useAuth();
+  const refreshCounter = useSelector(state => state.ui.transactionRefreshCounter);
   const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -30,6 +34,11 @@ function Wallet() {
     let isMounted = true;
 
     const fetchWalletBalance = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError("");
@@ -57,12 +66,14 @@ function Wallet() {
       }
     };
 
-    fetchWalletBalance();
+    if (!authLoading) {
+      fetchWalletBalance();
+    }
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [authLoading, refreshCounter, user]);
 
   return (
     <section className="space-y-6">

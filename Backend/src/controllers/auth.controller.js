@@ -81,7 +81,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 
   await Wallet.create({
     userId: user._id,
-    balance: 0
+    balance: 500
   });
 
   const { accessToken, refreshToken } = await issueAuthTokens(user);

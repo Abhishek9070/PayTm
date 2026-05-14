@@ -7,11 +7,15 @@ export const createNotification = async ({
   type,
   metadata = null
 }, options = {}) => {
-  return Notification.create({
-    userId,
-    title,
-    message,
-    type,
-    metadata
-  }, options);
+  const [notification] = await Notification.create([
+    {
+      userId,
+      title,
+      message,
+      type,
+      metadata
+    }
+  ], options);
+
+  return notification;
 };
