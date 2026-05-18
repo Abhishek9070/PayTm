@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -14,16 +15,16 @@ function AppLayout() {
   const isAuthenticated = Boolean(user);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileMenuRef = useRef(null);
+  const buttonRef = useRef(null);
+  const popupRef = useRef(null);
+  const [popupStyle, setPopupStyle] = useState({});
 
   useEffect(() => {
     const handlePointerDown = (event) => {
-      if (!profileMenuRef.current) {
-        return;
-      }
-
-      if (!profileMenuRef.current.contains(event.target)) {
-        setProfileOpen(false);
-      }
+      const target = event.target;
+      if (buttonRef.current && buttonRef.current.contains(target)) return;
+      if (popupRef.current && popupRef.current.contains(target)) return;
+      setProfileOpen(false);
     };
 
     document.addEventListener("mousedown", handlePointerDown);
@@ -88,15 +89,23 @@ function AppLayout() {
                 </Link>
               </>
             ) : (
-              <div
-                ref={profileMenuRef}
-                className="relative flex items-center"
-                onMouseEnter={() => setProfileOpen(true)}
-                onMouseLeave={() => setProfileOpen(false)}
-              >
+              <div ref={profileMenuRef} className="relative flex items-center">
                 <button
                   type="button"
-                  onClick={() => setProfileOpen((current) => !current)}
+                  ref={buttonRef}
+                  onClick={() => {
+                    setProfileOpen((current) => !current);
+                    // compute popup position when opening
+                    setTimeout(() => {
+                      if (!buttonRef.current) return;
+                      const rect = buttonRef.current.getBoundingClientRect();
+                      const width = 320; // w-80
+                      let left = rect.right - width;
+                      if (left < 8) left = 8;
+                      const top = rect.bottom + 8;
+                      setPopupStyle({ position: "fixed", top: `${top}px`, left: `${left}px`, width: `${width}px`, zIndex: 9999 });
+                    }, 0);
+                  }}
                   className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/95 px-4 py-2 text-left text-sm font-medium text-white transition hover:bg-slate-800/95"
                 >
                   <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-linear-to-r from-sky-400 to-cyan-300 text-xs font-semibold text-slate-950">
@@ -112,48 +121,52 @@ function AppLayout() {
                   </span>
                 </button>
 
-                {profileOpen ? (
-                  <div
-                    className="absolute right-0 mt-0 w-80 rounded-3xl border border-white/10 bg-slate-950 shadow-2xl shadow-black/80"
-                    style={{ top: "100%", marginTop: "8px", zIndex: 9999 }}
-                  >
-                    <div className="border-b border-white/10 p-4">
-                      <div className="text-sm font-semibold text-white">{user?.fullName}</div>
-                      <div className="mt-1 text-xs text-slate-400">{user?.phoneNumber}</div>
-                      <div className="mt-1 text-xs text-slate-400">UPI: {user?.upiId || "Not assigned"}</div>
-                      <div className="mt-3 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-300">
-                        KYC {statusLabel}
-                      </div>
-                    </div>
+                {profileOpen && typeof document !== "undefined"
+                  ? createPortal(
+                      <div
+                        ref={popupRef}
+                        className="rounded-3xl border border-white/10 bg-slate-950 shadow-2xl shadow-black/80"
+                        style={popupStyle}
+                      >
+                        <div className="border-b border-white/10 p-4">
+                          <div className="text-sm font-semibold text-white">{user?.fullName}</div>
+                          <div className="mt-1 text-xs text-slate-400">{user?.phoneNumber}</div>
+                          <div className="mt-1 text-xs text-slate-400">UPI: {user?.upiId || "Not assigned"}</div>
+                          <div className="mt-3 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-300">
+                            KYC {statusLabel}
+                          </div>
+                        </div>
 
-                    <div className="space-y-2 p-3">
-                      <Link
-                        to="/profile"
-                        onClick={() => setProfileOpen(false)}
-                        className="block rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10"
-                      >
-                        View profile
-                      </Link>
-                      <Link
-                        to="/kyc"
-                        onClick={() => setProfileOpen(false)}
-                        className="block rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200 transition hover:bg-amber-400/15"
-                      >
-                        Verify KYC
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false);
-                          logout();
-                        }}
-                        className="w-full rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-left text-sm text-rose-200 transition hover:bg-rose-400/15"
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
+                        <div className="space-y-2 p-3">
+                          <Link
+                            to="/profile"
+                            onClick={() => setProfileOpen(false)}
+                            className="block rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10"
+                          >
+                            View profile
+                          </Link>
+                          <Link
+                            to="/kyc"
+                            onClick={() => setProfileOpen(false)}
+                            className="block rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200 transition hover:bg-amber-400/15"
+                          >
+                            Verify KYC
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProfileOpen(false);
+                              logout();
+                            }}
+                            className="w-full rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-left text-sm text-rose-200 transition hover:bg-rose-400/15"
+                          >
+                            Logout
+                          </button>
+                        </div>
+                      </div>,
+                      document.body
+                    )
+                  : null}
               </div>
             )}
           </div>

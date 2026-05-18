@@ -149,6 +149,25 @@ const userSchema = new Schema({
     default: false
   }
 
+  ,
+  isFrozen: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  isBlocked: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  loginHistory: [
+    {
+      ipAddress: { type: String, default: null },
+      userAgent: { type: String, default: null },
+      at: { type: Date, default: Date.now }
+    }
+  ]
+
 }, { timestamps: true });
 
 userSchema.methods.generateAccessToken = function () {

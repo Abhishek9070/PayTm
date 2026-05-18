@@ -12,6 +12,7 @@ import razorpayRoutes from "./routes/razorpay.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
 import kycRoutes from "./routes/kyc.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import adminAuthRoutes from "./routes/admin.auth.routes.js";
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use("/api/v1/razorpay", razorpayRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/kyc", kycRoutes);
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/admin/auth", adminAuthRoutes);
 app.get("/", (req, res) => {
     res.status(200).json(new ApiResponse(200, null, "API is running..."));
 });
