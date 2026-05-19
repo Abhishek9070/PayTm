@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import adminApi from "../services/adminApi";
 
@@ -14,6 +15,25 @@ const cardList = [
   { key: "activeUsers", label: "Active users", icon: "⚡", color: "from-sky-500 to-indigo-400" }
 ];
 
+function normalizeStats(summary) {
+  const totals = summary?.totals || {};
+  const money = summary?.money || {};
+  const pendingActions = summary?.pendingActions || {};
+  const fraud = summary?.fraud || {};
+
+  return {
+    totalUsers: totals.users ?? 0,
+    totalTransactions: (totals.deposits ?? 0) + (totals.withdrawals ?? 0) + (totals.failedTransactions ?? 0),
+    totalDeposits: totals.deposits ?? 0,
+    totalWithdrawals: totals.withdrawals ?? 0,
+    pendingKyc: summary?.pendingKyc ?? 0,
+    pendingWithdrawals: pendingActions.withdrawals ?? 0,
+    fraudAlerts: fraud.activeSecurityEvents ?? 0,
+    revenue: money.revenue ?? 0,
+    activeUsers: totals.verifiedUsers ?? 0
+  };
+}
+
 export default function AdminDashboard() {
   const { admin } = useAdminAuth();
   const [stats, setStats] = useState(null);
@@ -27,7 +47,7 @@ export default function AdminDashboard() {
       try {
         const res = await adminApi.get("/dashboard/stats");
         if (!mounted) return;
-        setStats(res.data?.data || res.data || {});
+        setStats(normalizeStats(res.data?.data || res.data || {}));
       } catch (err) {
         if (!mounted) return;
         setError(err?.response?.data?.message || err.message || "Failed to load stats");
@@ -83,15 +103,15 @@ export default function AdminDashboard() {
         <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-6 backdrop-blur">
           <h2 className="text-lg font-semibold text-white">Quick Actions</h2>
           <div className="mt-4 space-y-2">
-            <button className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/10">
+            <Link to="/admin/kyc" className="block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/10">
               📋 Review Pending KYC
-            </button>
-            <button className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/10">
+            </Link>
+            <Link to="/admin/transactions" className="block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/10">
               💳 Check Transactions
-            </button>
-            <button className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/10">
+            </Link>
+            <Link to="/admin/reports" className="block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/10">
               📊 View Reports
-            </button>
+            </Link>
           </div>
         </div>
 

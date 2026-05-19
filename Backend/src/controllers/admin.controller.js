@@ -5,6 +5,7 @@ import { Transaction } from "../models/transaction.model.js";
 import { PaymentOrder } from "../models/paymentOrder.model.js";
 import { SecurityEvent } from "../models/securityEvent.model.js";
 import { Wallet } from "../models/walet.model.js";
+import { AdminAudit } from "../models/adminAudit.model.js";
 import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -315,7 +316,15 @@ export const freezeUser = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(id, { isFrozen: true }, { new: true });
   if (!user) throw new ApiError(404, "User not found");
 
-  await AdminAudit.create({ adminId: req.user._id, action: "freeze_user", targetUser: user._id, metadata: null });
+  try {
+    if (typeof AdminAudit !== "undefined" && AdminAudit && AdminAudit.create) {
+      await AdminAudit.create({ adminId: req.user._id, action: "freeze_user", targetUser: user._id, metadata: null });
+    } else {
+      console.warn("AdminAudit model not available - skipping audit for freeze_user");
+    }
+  } catch (e) {
+    console.warn("AdminAudit.create failed:", e && e.message ? e.message : e);
+  }
   return res.status(200).json(new ApiResponse(200, { user }, "User frozen"));
 });
 
@@ -325,7 +334,15 @@ export const unfreezeUser = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(id, { isFrozen: false }, { new: true });
   if (!user) throw new ApiError(404, "User not found");
 
-  await AdminAudit.create({ adminId: req.user._id, action: "unfreeze_user", targetUser: user._id, metadata: null });
+  try {
+    if (typeof AdminAudit !== "undefined" && AdminAudit && AdminAudit.create) {
+      await AdminAudit.create({ adminId: req.user._id, action: "unfreeze_user", targetUser: user._id, metadata: null });
+    } else {
+      console.warn("AdminAudit model not available - skipping audit for unfreeze_user");
+    }
+  } catch (e) {
+    console.warn("AdminAudit.create failed:", e && e.message ? e.message : e);
+  }
   return res.status(200).json(new ApiResponse(200, { user }, "User unfrozen"));
 });
 
@@ -334,7 +351,15 @@ export const blockUser = asyncHandler(async (req, res) => {
 
   const user = await User.findByIdAndUpdate(id, { isBlocked: true }, { new: true });
   if (!user) throw new ApiError(404, "User not found");
-  await AdminAudit.create({ adminId: req.user._id, action: "block_user", targetUser: user._id, metadata: null });
+  try {
+    if (typeof AdminAudit !== "undefined" && AdminAudit && AdminAudit.create) {
+      await AdminAudit.create({ adminId: req.user._id, action: "block_user", targetUser: user._id, metadata: null });
+    } else {
+      console.warn("AdminAudit model not available - skipping audit for block_user");
+    }
+  } catch (e) {
+    console.warn("AdminAudit.create failed:", e && e.message ? e.message : e);
+  }
   return res.status(200).json(new ApiResponse(200, { user }, "User blocked"));
 });
 
@@ -345,6 +370,15 @@ export const getPendingKyc = asyncHandler(async (req, res) => {
     .limit(100);
 
   return res.status(200).json(new ApiResponse(200, { pending }, "Pending KYC fetched"));
+});
+
+export const getKycById = asyncHandler(async (req, res) => {
+  const { id } = req.params; // user id
+
+  const user = await User.findById(id).select("fullName email phoneNumber kyc profileImage createdAt").lean();
+  if (!user) throw new ApiError(404, "User not found");
+
+  return res.status(200).json(new ApiResponse(200, { user }, "KYC details fetched"));
 });
 
 export const approveKyc = asyncHandler(async (req, res) => {
@@ -364,7 +398,15 @@ export const approveKyc = asyncHandler(async (req, res) => {
   await user.save();
 
   // audit
-  await AdminAudit.create({ adminId: req.user._id, action: "approve_kyc", targetUser: user._id, metadata: { kyc: user.kyc } });
+  try {
+    if (typeof AdminAudit !== "undefined" && AdminAudit && AdminAudit.create) {
+      await AdminAudit.create({ adminId: req.user._id, action: "approve_kyc", targetUser: user._id, metadata: { kyc: user.kyc } });
+    } else {
+      console.warn("AdminAudit model not available - skipping audit for approve_kyc");
+    }
+  } catch (e) {
+    console.warn("AdminAudit.create failed:", e && e.message ? e.message : e);
+  }
 
   return res.status(200).json(new ApiResponse(200, { user }, "KYC approved"));
 });
@@ -391,7 +433,15 @@ export const rejectKyc = asyncHandler(async (req, res) => {
   await user.save();
 
   // audit
-  await AdminAudit.create({ adminId: req.user._id, action: "reject_kyc", targetUser: user._id, metadata: { rejectionReason: user.kyc.rejectionReason } });
+  try {
+    if (typeof AdminAudit !== "undefined" && AdminAudit && AdminAudit.create) {
+      await AdminAudit.create({ adminId: req.user._id, action: "reject_kyc", targetUser: user._id, metadata: { rejectionReason: user.kyc.rejectionReason } });
+    } else {
+      console.warn("AdminAudit model not available - skipping audit for reject_kyc");
+    }
+  } catch (e) {
+    console.warn("AdminAudit.create failed:", e && e.message ? e.message : e);
+  }
 
   return res.status(200).json(new ApiResponse(200, { user }, "KYC rejected"));
 });

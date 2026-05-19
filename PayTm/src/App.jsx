@@ -20,6 +20,13 @@ import AdminLayout from "./admin/layouts/AdminLayout.jsx";
 import AdminLogin from "./admin/pages/AdminLogin.jsx";
 import AdminDashboard from "./admin/pages/AdminDashboard.jsx";
 import AdminAnalytics from "./admin/pages/AdminAnalytics.jsx";
+import AdminUsers from "./admin/pages/AdminUsers.jsx";
+import AdminTransactions from "./admin/pages/AdminTransactions.jsx";
+import AdminKyc from "./admin/pages/AdminKyc.jsx";
+import AdminKycDetail from "./admin/pages/AdminKycDetail.jsx";
+import AdminWithdrawals from "./admin/pages/AdminWithdrawals.jsx";
+import AdminReports from "./admin/pages/AdminReports.jsx";
+import AdminSettings from "./admin/pages/AdminSettings.jsx";
 
 function App() {
   return (
@@ -56,6 +63,13 @@ function App() {
             <Route element={<AdminLayout />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/transactions" element={<AdminTransactions />} />
+              <Route path="/admin/kyc" element={<AdminKyc />} />
+              <Route path="/admin/kyc/:id" element={<AdminKycDetail />} />
+              <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
+              <Route path="/admin/reports" element={<AdminReports />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
             </Route>
           </Route>
 

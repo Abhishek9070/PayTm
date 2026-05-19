@@ -20,7 +20,7 @@ export default function AdminAnalytics() {
       try {
         const to = new Date();
         const from = new Date(Date.now() - 29 * 24 * 60 * 60 * 1000);
-        const params = { fromDate: from.toISOString(), toDate: to.toISOString(), limit: 1000 };
+        const params = { fromDate: from.toISOString(), toDate: to.toISOString(), limit: 500 };
         const [txRes, evRes] = await Promise.all([
           adminApi.get("/transactions", { params }),
           adminApi.get("/security-events", { params })

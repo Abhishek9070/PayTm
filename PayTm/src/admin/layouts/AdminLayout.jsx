@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAdminAuth } from "../context/AdminAuthContext";
 
 const adminNavItems = [
@@ -58,14 +58,20 @@ function AdminLayout() {
           <aside className="w-64 border-r border-white/10 bg-slate-950/50 backdrop-blur">
             <nav className="space-y-2 p-4">
               {adminNavItems.map((item) => (
-                <Link
+                <NavLink
                   key={item.to}
                   to={item.to}
-                  className="flex items-center gap-3 rounded-lg border border-transparent px-4 py-3 text-sm transition hover:border-sky-400/50 hover:bg-white/5"
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg border px-4 py-3 text-sm transition ${
+                      isActive
+                        ? "border-sky-400/50 bg-sky-400/10 text-white"
+                        : "border-transparent hover:border-sky-400/50 hover:bg-white/5"
+                    }`
+                  }
                 >
                   <span className="text-lg">{item.icon}</span>
                   <span>{item.label}</span>
-                </Link>
+                </NavLink>
               ))}
             </nav>
           </aside>

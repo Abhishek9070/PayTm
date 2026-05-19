@@ -8,9 +8,10 @@ import {
 } from "../controllers/admin.controller.js";
 import { getAdminTransactions, getSecurityEvents } from "../controllers/admin.controller.js";
 import { sendAdminNotification } from "../controllers/adminNotifications.controller.js";
-import { AdminAudit } from "../models/adminAudit.model.js";
+// AdminAudit import removed to avoid potential circular import at route load time
 import {
   getPendingKyc,
+  getKycById,
   approveKyc,
   rejectKyc
 } from "../controllers/admin.controller.js";
@@ -38,6 +39,7 @@ router.patch("/users/:id/block", verifyJWT, isAdmin, blockUser);
 
 // KYC management
 router.get("/kyc/pending", verifyJWT, isAdmin, getPendingKyc);
+router.get("/kyc/:id", verifyJWT, isAdmin, getKycById);
 router.patch("/kyc/:id/approve", verifyJWT, isAdmin, approveKyc);
 router.patch("/kyc/:id/reject", verifyJWT, isAdmin, rejectKyc);
 
