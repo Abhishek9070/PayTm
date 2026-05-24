@@ -13,10 +13,8 @@ export const setupInterceptors = (logoutCallback) => {
       if (error.response?.status === 401) {
         // Token expired or invalid
         logoutCallback();
-        // Optionally redirect to login with a message
-        const searchParams = new URLSearchParams();
-        searchParams.set("message", "Session expired. Please login again.");
-        window.location.href = `/login?${searchParams.toString()}`;
+        // Redirect to home page
+        window.location.href = "/";
       }
       return Promise.reject(error);
     }

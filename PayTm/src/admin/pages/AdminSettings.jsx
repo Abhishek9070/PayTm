@@ -31,7 +31,10 @@ export default function AdminSettings() {
           </div>
           <button
             type="button"
-            onClick={logout}
+            onClick={() => {
+              logout();
+              window.location.href = "/";
+            }}
             className="mt-6 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-400/15"
           >
             Logout

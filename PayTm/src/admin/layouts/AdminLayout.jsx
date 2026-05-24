@@ -43,7 +43,10 @@ function AdminLayout() {
               {(admin?.fullName || "A").slice(0, 1).toUpperCase()}
             </div>
             <button
-              onClick={logout}
+              onClick={() => {
+                logout();
+                window.location.href = "/";
+              }}
               className="rounded-lg border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-400/15"
             >
               Logout

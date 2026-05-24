@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext.jsx";
 import { LoadingButton } from "../components/ui/loading-state.jsx";
@@ -7,7 +7,6 @@ import toast from "react-hot-toast";
 
 function Login() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     phoneNumber: "",
@@ -15,13 +14,6 @@ function Login() {
   });
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    const message = searchParams.get("message");
-    if (message) {
-      toast.error(message);
-    }
-  }, [searchParams]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;

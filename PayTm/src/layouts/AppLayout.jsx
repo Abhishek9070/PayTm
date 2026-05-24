@@ -166,6 +166,7 @@ function AppLayout() {
                             onClick={() => {
                               setProfileOpen(false);
                               logout();
+                              window.location.href = "/";
                             }}
                             className="w-full rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-left text-sm text-rose-200 transition hover:bg-rose-400/15"
                           >
