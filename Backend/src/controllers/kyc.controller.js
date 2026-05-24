@@ -57,6 +57,15 @@ export const submitKycDocuments = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
 
+  if (["pending", "approved"].includes(user.kyc?.status)) {
+    throw new ApiError(
+      409,
+      user.kyc.status === "approved"
+        ? "KYC is already verified. Contact support if you need to update it."
+        : "KYC is already under review. Please wait for admin approval or rejection."
+    );
+  }
+
   user.kyc = {
     status: "pending",
     documentType: normalizedDocumentType,

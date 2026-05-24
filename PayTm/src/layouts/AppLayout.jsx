@@ -37,6 +37,7 @@ function AppLayout() {
   const statusLabel = user?.kyc?.status
     ? user.kyc.status.replaceAll("_", " ")
     : "not submitted";
+  const canAccessKyc = ["not_submitted", "rejected"].includes(String(user?.kyc?.status || "not_submitted"));
   const profilePhoto = user?.profileImage?.url || user?.kyc?.profileImage?.url || null;
 
   const isActive = (path) => location.pathname === path;
@@ -145,13 +146,21 @@ function AppLayout() {
                           >
                             View profile
                           </Link>
-                          <Link
-                            to="/kyc"
-                            onClick={() => setProfileOpen(false)}
-                            className="block rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200 transition hover:bg-amber-400/15"
-                          >
-                            Verify KYC
-                          </Link>
+                          {canAccessKyc ? (
+                            <Link
+                              to="/kyc"
+                              onClick={() => setProfileOpen(false)}
+                              className="block rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200 transition hover:bg-amber-400/15"
+                            >
+                              Verify KYC
+                            </Link>
+                          ) : (
+                            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+                              {user?.kyc?.status === "approved"
+                                ? "KYC verified"
+                                : "KYC under review"}
+                            </div>
+                          )}
                           <button
                             type="button"
                             onClick={() => {

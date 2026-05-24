@@ -89,6 +89,8 @@ export default function Kyc() {
   }, []);
 
   const profileImage = profile?.profileImage?.url || profile?.kyc?.profileImage?.url || null;
+  const kycStatus = String(profile?.kyc?.status || "not_submitted");
+  const canEditKyc = ["not_submitted", "rejected"].includes(kycStatus);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -113,6 +115,15 @@ export default function Kyc() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
+
+    if (!canEditKyc) {
+      setError(
+        kycStatus === "approved"
+          ? "Your KYC is already verified."
+          : "Your KYC is already under review. Please wait for admin action."
+      );
+      return;
+    }
 
     if (!form.fullName.trim() || !form.phoneNumber.trim() || !form.address.trim() || !form.gender.trim()) {
       setError("Fill full name, phone number, address, and gender.");
@@ -214,90 +225,108 @@ export default function Kyc() {
             KYC status: <span className="font-medium text-white">{String(profile?.kyc?.status || "not_submitted").replaceAll("_", " ")}</span>
           </div>
 
+          {!canEditKyc ? (
+            <div className="mt-6 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+              {kycStatus === "approved"
+                ? "Your KYC is verified. The form is locked."
+                : "Your KYC is currently under review. You can submit again only after admin rejects or clears the current request."}
+            </div>
+          ) : null}
+
           <div className="mt-6 rounded-2xl border border-white/10 bg-sky-400/10 p-4 text-sm text-sky-100">
             Aadhaar and PAN use the same form fields. Only the document type and ID number change.
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="rounded-3xl border border-white/10 bg-slate-950/45 p-6 shadow-2xl shadow-black/20 backdrop-blur">
-          {loading && (
-            <div className="mb-4 rounded-2xl border border-sky-400/20 bg-sky-400/10 px-4 py-3 text-sm text-sky-200">
-              Loading your profile data...
-            </div>
-          )}
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => handleDocumentTypeChange("aadhaar")}
-              className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
-                form.documentType === "aadhaar"
-                  ? "border-sky-400/60 bg-sky-400/10 text-white"
-                  : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
-              }`}
-            >
-              Aadhaar verification
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDocumentTypeChange("pan")}
-              className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
-                form.documentType === "pan"
-                  ? "border-amber-400/60 bg-amber-400/10 text-white"
-                  : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
-              }`}
-            >
-              PAN verification
-            </button>
-          </div>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <Field label="Full name">
-              <Input name="fullName" value={form.fullName} onChange={handleChange} placeholder="Your full name" />
-            </Field>
-            <Field label="Phone number">
-              <Input name="phoneNumber" value={form.phoneNumber} onChange={handleChange} placeholder="9876543210" maxLength={10} />
-            </Field>
-            <Field label="Address" hint="Current residential address">
-              <Input name="address" value={form.address} onChange={handleChange} placeholder="Enter your address" />
-            </Field>
-            <Field label="Gender">
-              <Input name="gender" value={form.gender} onChange={handleChange} placeholder="Male / Female / Other" />
-            </Field>
-            {form.documentType === "aadhaar" ? (
-              <Field label="Aadhaar number">
-                <Input name="aadhaarNumber" value={form.aadhaarNumber} onChange={handleChange} placeholder="12-digit Aadhaar number" maxLength={12} />
-              </Field>
-            ) : (
-              <Field label="PAN number">
-                <Input name="panNumber" value={form.panNumber} onChange={handleChange} placeholder="ABCDE1234F" maxLength={10} />
-              </Field>
+        {canEditKyc ? (
+          <form onSubmit={handleSubmit} className="rounded-3xl border border-white/10 bg-slate-950/45 p-6 shadow-2xl shadow-black/20 backdrop-blur">
+            {loading && (
+              <div className="mb-4 rounded-2xl border border-sky-400/20 bg-sky-400/10 px-4 py-3 text-sm text-sky-200">
+                Loading your profile data...
+              </div>
             )}
-          </div>
 
-          <div className="mt-6">
-            <FileField
-              label={documentLabel}
-              fileName={documentImage?.name}
-              onChange={(event) => setDocumentImage(event.target.files?.[0] || null)}
-            />
-          </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => handleDocumentTypeChange("aadhaar")}
+                className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                  form.documentType === "aadhaar"
+                    ? "border-sky-400/60 bg-sky-400/10 text-white"
+                    : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+                }`}
+              >
+                Aadhaar verification
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDocumentTypeChange("pan")}
+                className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                  form.documentType === "pan"
+                    ? "border-amber-400/60 bg-amber-400/10 text-white"
+                    : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+                }`}
+              >
+                PAN verification
+              </button>
+            </div>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-            Upload only the document image that matches your chosen verification type.
-          </div>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <Field label="Full name">
+                <Input name="fullName" value={form.fullName} onChange={handleChange} placeholder="Your full name" />
+              </Field>
+              <Field label="Phone number">
+                <Input name="phoneNumber" value={form.phoneNumber} onChange={handleChange} placeholder="9876543210" maxLength={10} />
+              </Field>
+              <Field label="Address" hint="Current residential address">
+                <Input name="address" value={form.address} onChange={handleChange} placeholder="Enter your address" />
+              </Field>
+              <Field label="Gender">
+                <Input name="gender" value={form.gender} onChange={handleChange} placeholder="Male / Female / Other" />
+              </Field>
+              {form.documentType === "aadhaar" ? (
+                <Field label="Aadhaar number">
+                  <Input name="aadhaarNumber" value={form.aadhaarNumber} onChange={handleChange} placeholder="12-digit Aadhaar number" maxLength={12} />
+                </Field>
+              ) : (
+                <Field label="PAN number">
+                  <Input name="panNumber" value={form.panNumber} onChange={handleChange} placeholder="ABCDE1234F" maxLength={10} />
+                </Field>
+              )}
+            </div>
 
-          <div className="mt-6 flex items-center gap-3">
-            <LoadingButton
-              type="submit"
-              loading={submitting}
-              disabled={submitting}
-              className="rounded-2xl bg-linear-to-r from-amber-300 to-orange-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110"
-            >
-              Submit KYC
-            </LoadingButton>
+            <div className="mt-6">
+              <FileField
+                label={documentLabel}
+                fileName={documentImage?.name}
+                onChange={(event) => setDocumentImage(event.target.files?.[0] || null)}
+              />
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+              Upload only the document image that matches your chosen verification type.
+            </div>
+
+            <div className="mt-6 flex items-center gap-3">
+              <LoadingButton
+                type="submit"
+                loading={submitting}
+                disabled={submitting}
+                className="rounded-2xl bg-linear-to-r from-amber-300 to-orange-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110"
+              >
+                Submit KYC
+              </LoadingButton>
+            </div>
+          </form>
+        ) : (
+          <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-6 shadow-2xl shadow-black/20 backdrop-blur">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-slate-300">
+              {kycStatus === "approved"
+                ? "Your KYC is already verified, so the form is hidden."
+                : "Your KYC request is currently under review, so the form is hidden until the current request is rejected or cleared by admin."}
+            </div>
           </div>
-        </form>
+        )}
       </div>
     </section>
   );

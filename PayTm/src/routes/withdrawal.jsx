@@ -99,7 +99,7 @@ export default function WithdrawalPage() {
         {success && <div className="rounded-md bg-emerald-900/40 p-3 text-sm text-emerald-200">{success}</div>}
 
         <div className="flex items-center gap-2">
-          <LoadingButton loading={loading} className="rounded bg-sky-500 px-4 py-2 text-sm font-medium text-white">
+          <LoadingButton type="submit" loading={loading} className="rounded bg-sky-500 px-4 py-2 text-sm font-medium text-white">
             Request Withdrawal
           </LoadingButton>
         </div>

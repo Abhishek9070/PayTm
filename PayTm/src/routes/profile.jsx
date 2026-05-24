@@ -64,6 +64,8 @@ export default function Profile() {
   }, [updateUser]);
 
   const status = labelFromStatus(profile?.kyc?.status);
+  const kycStatus = String(profile?.kyc?.status || "not_submitted");
+  const canAccessKyc = ["not_submitted", "rejected"].includes(kycStatus);
   const profileImage = profile?.profileImage?.url || profile?.kyc?.profileImage?.url || null;
   const qrValue = profile?.upiId
     ? `upi://pay?pa=${profile.upiId}&pn=${encodeURIComponent(profile.fullName || "PayTm User")}&cu=INR`
@@ -157,16 +159,27 @@ export default function Profile() {
                 <div className="text-xs uppercase tracking-[0.2em] text-slate-400">UPI ID</div>
                 <div className="mt-2 break-all text-lg font-semibold text-white">{profile?.upiId || "Not assigned"}</div>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-xs uppercase tracking-[0.2em] text-slate-400">KYC</div>
-                <div className="mt-2 text-sm text-slate-300">Go to the verification page to submit Aadhaar or PAN details.</div>
-                <Link
-                  to="/kyc"
-                  className="mt-4 inline-flex rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-sm font-medium text-amber-200 transition hover:bg-amber-400/15"
-                >
-                  Verify KYC
-                </Link>
-              </div>
+              {canAccessKyc ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-xs uppercase tracking-[0.2em] text-slate-400">KYC</div>
+                  <div className="mt-2 text-sm text-slate-300">Go to the verification page to submit Aadhaar or PAN details.</div>
+                  <Link
+                    to="/kyc"
+                    className="mt-4 inline-flex rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-sm font-medium text-amber-200 transition hover:bg-amber-400/15"
+                  >
+                    Verify KYC
+                  </Link>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-xs uppercase tracking-[0.2em] text-slate-400">KYC</div>
+                  <div className="mt-2 text-sm text-slate-300">
+                    {kycStatus === "approved"
+                      ? "Your KYC is already verified."
+                      : "Your KYC is under review. Please wait for admin action."}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
