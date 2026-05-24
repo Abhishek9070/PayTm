@@ -5,12 +5,6 @@ import { razorpayInstance } from "../config/razorpay.js";
 import { Wallet } from "../models/walet.model.js";
 import { PaymentOrder } from "../models/paymentOrder.model.js";
 import { Transaction } from "../models/transaction.model.js";
-import {
-  consumeActionRateLimit,
-  HIGH_VALUE_TRANSACTION_THRESHOLD,
-  PAYMENT_ORDER_COOLDOWN_MS,
-  recordSecurityEvent
-} from "../utils/fraudProtection.js";
 
 import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
@@ -18,109 +12,86 @@ import asyncHandler from "../utils/asyncHandler.js";
 
 
 export const createRazorpayOrder = asyncHandler(async (req, res) => {
-  const { amount } = req.body;
+  try {
+    console.log("\n=== RAZORPAY ORDER CREATION ===");
+    console.log("Request body:", req.body);
+    console.log("User ID:", req.user?._id);
+    
+    const { amount } = req.body;
+    const parsedAmount = Number(amount);
 
-  const parsedAmount = Number(amount);
+    console.log("Parsed amount:", parsedAmount);
 
-  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-    throw new ApiError(400, "Invalid amount");
-  }
-
-  await consumeActionRateLimit({
-    userId: req.user._id.toString(),
-    action: "payment_order",
-    limit: 5,
-    windowMs: 10 * 60 * 1000,
-    reason: "Too many payment order requests. Please wait before trying again.",
-    route: req.originalUrl,
-    ipAddress: req.ip,
-    metadata: {
-      amount: parsedAmount
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      throw new ApiError(400, "Invalid amount");
     }
-  });
 
-  const recentPendingOrder = await PaymentOrder.findOne({
-    userId: req.user._id,
-    amount: parsedAmount,
-    status: "pending",
-    createdAt: {
-      $gte: new Date(Date.now() - PAYMENT_ORDER_COOLDOWN_MS)
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+    console.log("Razorpay creds check - KeyID exists:", !!keyId, "KeySecret exists:", !!keySecret);
+
+    if (!keyId || !keySecret) {
+      throw new ApiError(500, "Razorpay credentials missing in .env");
     }
-  }).sort({ createdAt: -1 });
 
-  if (recentPendingOrder) {
-    await recordSecurityEvent({
-      userId: req.user._id,
-      actionType: "duplicate_order",
-      reason: "Duplicate payment order request detected",
-      severity: "medium",
-      blocked: true,
-      route: req.originalUrl,
-      ipAddress: req.ip,
-      metadata: {
-        paymentOrderId: recentPendingOrder._id,
-        amount: parsedAmount
-      }
-    });
+    console.log("Creating order with Razorpay instance...");
+    
+    const options = {
+      amount: Math.round(parsedAmount * 100), 
+      currency: "INR",
+      receipt: `rec_${Date.now()}`
+    };
 
+    console.log("Options:", options);
+    
+    let order;
     try {
-      const existingOrder = await razorpayInstance.orders.fetch(recentPendingOrder.razorpayOrderId);
-
-      return res.status(200).json(
-        new ApiResponse(200, existingOrder, "Existing pending payment order returned")
-      );
-    } catch (error) {
-      console.log("Failed to fetch existing Razorpay order:", error.message);
+      order = await razorpayInstance.orders.create(options);
+      console.log("✓ Order created:", order.id);
+    } catch (rzpError) {
+      console.error("✗ Razorpay API error:", rzpError.message);
+      console.error("Razorpay error details:", rzpError);
+      throw new ApiError(500, `Razorpay API failed: ${rzpError.message}`);
     }
+
+    console.log("Saving to PaymentOrder collection...");
+    
+    let savedOrder;
+    try {
+      savedOrder = await PaymentOrder.create({
+        userId: req.user._id,
+        amount: parsedAmount,
+        razorpayOrderId: order.id,
+        currency: "INR",
+        status: "pending"
+      });
+      console.log("✓ Saved to DB:", savedOrder._id);
+    } catch (dbError) {
+      console.error("✗ Database error:", dbError.message);
+      console.error("DB error details:", dbError);
+      throw new ApiError(500, `Database error: ${dbError.message}`);
+    }
+
+    console.log("✓ Success! Returning response");
+
+    return res.status(200).json(
+      new ApiResponse(200, { order, keyId }, "Order created successfully")
+    );
+
+  } catch (error) {
+    console.error("\n!!! CAUGHT ERROR !!!");
+    console.error("Error type:", error.constructor.name);
+    console.error("Error message:", error.message);
+    console.error("Full error:", error);
+    
+    if (error.statusCode) {
+      throw error;
+    }
+    
+    throw new ApiError(500, error.message || "Failed to create order");
   }
-
-  if (parsedAmount >= HIGH_VALUE_TRANSACTION_THRESHOLD) {
-    void recordSecurityEvent({
-      userId: req.user._id,
-      actionType: "high_value_transaction",
-      reason: `High value payment order created for ₹${parsedAmount}`,
-      severity: "high",
-      blocked: false,
-      route: req.originalUrl,
-      ipAddress: req.ip,
-      metadata: {
-        amount: parsedAmount
-      }
-    });
-  }
-
-
-  const options = {
-    amount: parsedAmount * 100,
-    currency: "INR",
-    receipt: `receipt_${Date.now()}`
-  };
-
-
-  const order = await razorpayInstance.orders.create(options);
-
-  await PaymentOrder.create({
-    userId: req.user._id,
-    amount: parsedAmount,
-    razorpayOrderId: order.id,
-    currency: order.currency,
-    status: "pending"
-  });
-
-  const responsePayload = {
-    order,
-    keyId: process.env.RAZORPAY_KEY_ID || null
-  };
-
-  return res.status(200).json(
-    new ApiResponse(
-      200,
-      responsePayload,
-      "Razorpay order created successfully"
-    )
-  );
 });
-
 
 
 export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
