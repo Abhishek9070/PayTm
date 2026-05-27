@@ -12,7 +12,7 @@ import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
-const notifyWithdrawalRequested = async ({ userId, amount, upiId }) => {
+const notifyWithdrawalRequested = async ({ userId, amount, upiId, user = null }) => {
   try {
     await createNotification({
       userId,
@@ -22,15 +22,34 @@ const notifyWithdrawalRequested = async ({ userId, amount, upiId }) => {
       metadata: {
         amount,
         upiId,
-        status: "pending"
+        status: "pending",
+        withdrawalId: null,
+        time: new Date().toLocaleString("en-IN")
       }
     });
+
+    if (user?.email) {
+      await createNotification({
+        userId,
+        title: "Withdrawal Request Created",
+        message: `Your withdrawal request of ₹${amount} has been created.`,
+        type: "withdrawal",
+        metadata: {
+          amount,
+          upiId,
+          status: "requested",
+          time: new Date().toLocaleString("en-IN")
+        },
+        sendEmail: true,
+        user
+      });
+    }
   } catch (error) {
     console.log("Withdrawal request notification failed:", error.message);
   }
 };
 
-const notifyWithdrawalApproved = async ({ userId, amount }) => {
+const notifyWithdrawalApproved = async ({ userId, amount, user = null }) => {
   try {
     await createNotification({
       userId,
@@ -39,15 +58,33 @@ const notifyWithdrawalApproved = async ({ userId, amount }) => {
       type: "withdrawal",
       metadata: {
         amount,
-        status: "approved"
+        status: "completed",
+        time: new Date().toLocaleString("en-IN")
       }
     });
+
+    if (user?.email) {
+      await createNotification({
+        userId,
+        title: "Withdrawal Successful",
+        message: `Your withdrawal of ₹${amount} has been processed.`,
+        type: "withdrawal",
+        metadata: {
+          amount,
+          status: "completed",
+          accountNumber: user?.bankAccount?.accountNumber || "****",
+          time: new Date().toLocaleString("en-IN")
+        },
+        sendEmail: true,
+        user
+      });
+    }
   } catch (error) {
     console.log("Withdrawal approval notification failed:", error.message);
   }
 };
 
-const notifyWithdrawalRejected = async ({ userId, amount, reason }) => {
+const notifyWithdrawalRejected = async ({ userId, amount, reason, user = null }) => {
   try {
     await createNotification({
       userId,
@@ -60,6 +97,23 @@ const notifyWithdrawalRejected = async ({ userId, amount, reason }) => {
         status: "rejected"
       }
     });
+
+    // Send email notification
+    if (user?.email) {
+      await createNotification({
+        userId,
+        title: "Withdrawal Rejected",
+        message: `Your withdrawal of ₹${amount} was rejected.`,
+        type: "withdrawal",
+        metadata: {
+          amount,
+          reason: reason || "No reason provided",
+          status: "rejected"
+        },
+        sendEmail: true,
+        user
+      });
+    }
   } catch (error) {
     console.log("Withdrawal rejection notification failed:", error.message);
   }
@@ -175,10 +229,15 @@ export const createWithdrawal = asyncHandler(async (req, res) => {
     upiId: upiId.trim().toLowerCase()
   });
 
+  // Get user for email notification
+  const { User } = await import("../models/user.model.js");
+  const user = await User.findById(userId).select("email firstName lastName");
+
   void notifyWithdrawalRequested({
     userId,
     amount: parsedAmount,
-    upiId: upiId.trim().toLowerCase()
+    upiId: upiId.trim().toLowerCase(),
+    user
   });
 
   return res.status(201).json(
@@ -271,9 +330,14 @@ export const approveWithdrawal = asyncHandler(async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
+    // Get user for email notification
+    const { User } = await import("../models/user.model.js");
+    const user = await User.findById(withdrawal.userId).select("email firstName lastName");
+
     await notifyWithdrawalApproved({
       userId: withdrawal.userId,
-      amount: withdrawal.amount
+      amount: withdrawal.amount,
+      user
     });
 
     return res.status(200).json(
@@ -332,10 +396,15 @@ export const rejectWithdrawal = asyncHandler(async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
+    // Get user for email notification
+    const { User } = await import("../models/user.model.js");
+    const user = await User.findById(withdrawal.userId).select("email firstName lastName");
+
     void notifyWithdrawalRejected({
       userId: withdrawal.userId,
       amount: withdrawal.amount,
-      reason: withdrawal.rejectionReason
+      reason: withdrawal.rejectionReason,
+      user
     });
 
     return res.status(200).json(

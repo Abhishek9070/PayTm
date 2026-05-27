@@ -199,11 +199,14 @@ export const sendMoney = asyncHandler(async (req, res) => {
         userId: senderId,
         title: "Money Sent",
         message: `You sent ₹${parsedAmount}`,
-        type: "transfer",
+        type: "debit",
         metadata: {
           transactionId: transaction._id,
           direction: "send",
-          amount: parsedAmount
+          amount: parsedAmount,
+          recipientName: receiver.firstName + " " + receiver.lastName,
+          availableBalance: senderWallet.balance,
+          time: new Date().toLocaleString("en-IN")
         }
       },
       { session }
@@ -214,11 +217,14 @@ export const sendMoney = asyncHandler(async (req, res) => {
         userId: receiverId,
         title: "Money Received",
         message: `You received ₹${parsedAmount}`,
-        type: "transfer",
+        type: "credit",
         metadata: {
           transactionId: transaction._id,
           direction: "receive",
-          amount: parsedAmount
+          amount: parsedAmount,
+          senderName: sender.firstName + " " + sender.lastName,
+          availableBalance: receiverWallet.balance,
+          time: new Date().toLocaleString("en-IN")
         }
       },
       { session }
@@ -226,6 +232,43 @@ export const sendMoney = asyncHandler(async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
+
+   
+    if (sender?.email) {
+      await createNotification({
+        userId: senderId,
+        title: "Money Sent",
+        message: `You sent ₹${parsedAmount}`,
+        type: "debit",
+        metadata: {
+          transactionId: transaction._id,
+          amount: parsedAmount,
+          recipientName: receiver.firstName + " " + receiver.lastName,
+          availableBalance: senderWallet.balance,
+          time: new Date().toLocaleString("en-IN")
+        },
+        sendEmail: true,
+        user: sender
+      });
+    }
+
+    if (receiver?.email) {
+      await createNotification({
+        userId: receiverId,
+        title: "Money Received",
+        message: `You received ₹${parsedAmount}`,
+        type: "credit",
+        metadata: {
+          transactionId: transaction._id,
+          amount: parsedAmount,
+          senderName: sender.firstName + " " + sender.lastName,
+          availableBalance: receiverWallet.balance,
+          time: new Date().toLocaleString("en-IN")
+        },
+        sendEmail: true,
+        user: receiver
+      });
+    }
 
     return res.status(200).json(
       new ApiResponse(200, transaction, "Transaction successful")

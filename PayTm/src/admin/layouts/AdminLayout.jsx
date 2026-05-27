@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAdminAuth } from "../context/AdminAuthContext";
+import AdminNotificationBell from "../../components/notifications/AdminNotificationBell";
 
 const adminNavItems = [
   { label: "Dashboard", to: "/admin/dashboard", icon: "📊" },
@@ -35,6 +36,7 @@ function AdminLayout() {
           </div>
 
           <div className="flex items-center gap-4">
+            <AdminNotificationBell />
             <div className="hidden md:flex flex-col items-end">
               <span className="text-sm font-semibold">{admin?.fullName}</span>
               <span className="text-xs text-slate-400 uppercase tracking-widest">{admin?.role}</span>

@@ -19,7 +19,7 @@ const isSameAmount = (left, right) => {
   return Number.isFinite(left) && Number.isFinite(right) && left === right;
 };
 
-const notifyDepositSuccess = async ({ deposit, session }) => {
+const notifyDepositSuccess = async ({ deposit, user, session }) => {
   try {
     await createNotification(
       {
@@ -30,11 +30,30 @@ const notifyDepositSuccess = async ({ deposit, session }) => {
         metadata: {
           depositId: deposit._id,
           paymentRef: deposit.paymentRef,
-          amount: deposit.amount
+          amount: deposit.amount,
+          time: new Date().toLocaleString("en-IN")
         }
       },
       { session }
     );
+
+    // Send email notification after transaction is committed
+    if (user?.email) {
+      await createNotification({
+        userId: deposit.userId,
+        title: "Deposit Approved",
+        message: `₹${deposit.amount} added to your wallet successfully`,
+        type: "deposit",
+        metadata: {
+          depositId: deposit._id,
+          paymentRef: deposit.paymentRef,
+          amount: deposit.amount,
+          time: new Date().toLocaleString("en-IN")
+        },
+        sendEmail: true,
+        user
+      });
+    }
   } catch (error) {
     console.log("Deposit notification failed:", error.message);
   }
@@ -283,12 +302,16 @@ export const approveDeposit = asyncHandler(async (req, res) => {
       throw new ApiError(400, `Deposit is already ${deposit.status}`);
     }
 
+    // Get user data for email notification
+    const { User } = await import("../models/user.model.js");
+    const user = await User.findById(deposit.userId).select("email firstName lastName");
+
     await creditDepositInTransaction({ deposit, session, reviewerId: req.user._id });
 
     await session.commitTransaction();
     session.endSession();
 
-    await notifyDepositSuccess({ deposit, session });
+    await notifyDepositSuccess({ deposit, user, session });
 
     return res.status(200).json(
       new ApiResponse(200, deposit, "Deposit approved successfully")

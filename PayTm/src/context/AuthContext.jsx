@@ -5,7 +5,8 @@ const AuthContext = createContext(null);
 
 const STORAGE_KEYS = {
   user: "paytm_user",
-  token: "paytm_token"
+  token: "paytm_token",
+  refreshToken: "paytm_refresh_token"
 };
 
 
@@ -25,11 +26,13 @@ const isTokenExpired = (token) => {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [refreshToken, setRefreshToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const savedUser = localStorage.getItem(STORAGE_KEYS.user);
     const savedToken = localStorage.getItem(STORAGE_KEYS.token);
+    const savedRefreshToken = localStorage.getItem(STORAGE_KEYS.refreshToken);
 
     if (savedUser) {
       try {
@@ -50,6 +53,10 @@ export function AuthProvider({ children }) {
       }
     }
 
+    if (savedRefreshToken) {
+      setRefreshToken(savedRefreshToken);
+    }
+
     setLoading(false);
   }, []);
 
@@ -65,11 +72,23 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(STORAGE_KEYS.token);
   }, [token]);
 
+  // Handle refresh token storage
+  useEffect(() => {
+    if (refreshToken) {
+      localStorage.setItem(STORAGE_KEYS.refreshToken, refreshToken);
+      return;
+    }
+
+    localStorage.removeItem(STORAGE_KEYS.refreshToken);
+  }, [refreshToken]);
+
   const logout = () => {
     setUser(null);
     setToken(null);
+    setRefreshToken(null);
     localStorage.removeItem(STORAGE_KEYS.user);
     localStorage.removeItem(STORAGE_KEYS.token);
+    localStorage.removeItem(STORAGE_KEYS.refreshToken);
     delete api.defaults.headers.common.Authorization;
   };
 
@@ -95,9 +114,11 @@ export function AuthProvider({ children }) {
   const login = (authData) => {
     const nextUser = authData?.user ?? null;
     const nextToken = authData?.accessToken ?? authData?.token ?? null;
+    const nextRefreshToken = authData?.refreshToken ?? null;
 
     setUser(nextUser);
     setToken(nextToken);
+    setRefreshToken(nextRefreshToken);
 
     if (nextUser) {
       localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(nextUser));
@@ -107,6 +128,12 @@ export function AuthProvider({ children }) {
 
     if (!nextToken) {
       delete api.defaults.headers.common.Authorization;
+    }
+
+    if (nextRefreshToken) {
+      localStorage.setItem(STORAGE_KEYS.refreshToken, nextRefreshToken);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.refreshToken);
     }
   };
 
@@ -125,12 +152,13 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       token,
+      refreshToken,
       loading,
       login,
       updateUser,
       logout
     }),
-    [user, token, loading]
+    [user, token, refreshToken, loading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

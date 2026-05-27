@@ -24,10 +24,13 @@ const notificationSchema = new Schema(
     type: {
       type: String,
       enum: [
-        "transfer",
-        "deposit",
-        "withdrawal",
-        "payment"
+        "credit",       
+        "debit",       
+        "withdrawal",   
+        "deposit",      
+        "kyc",           
+        "security",      
+        "system"         
       ],
       required: true
     },
