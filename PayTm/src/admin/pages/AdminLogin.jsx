@@ -4,6 +4,13 @@ import { useAdminAuth } from "../context/AdminAuthContext";
 import adminApi from "../services/adminApi";
 import toast from "react-hot-toast";
 
+const DEBUG = true;
+const log = (message, data = null) => {
+  if (DEBUG) {
+    console.log(`[AdminLogin] ${message}`, data || "");
+  }
+};
+
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { login } = useAdminAuth();
@@ -22,6 +29,7 @@ export default function AdminLogin() {
     }
 
     setLoading(true);
+    log("Attempting login with phone", { phone: phoneNumber });
 
     try {
       const response = await adminApi.post("/auth/login", {
@@ -29,17 +37,39 @@ export default function AdminLogin() {
         password
       });
 
+      log("Login response received", { 
+        status: response.status,
+        hasData: !!response.data,
+        dataKeys: Object.keys(response.data || {})
+      });
+
       const authData = response?.data?.data;
 
+      log("Extracted auth data", {
+        hasAuthData: !!authData,
+        hasAdmin: !!authData?.admin,
+        hasAccessToken: !!authData?.accessToken,
+        hasRefreshToken: !!authData?.refreshToken,
+        adminId: authData?.admin?._id,
+        adminName: authData?.admin?.fullName
+      });
+
       if (authData?.admin && authData?.accessToken) {
+        log("Valid auth data, calling login function");
         login(authData);
         toast.success("Admin login successful");
+        log("Navigating to admin dashboard");
         navigate("/admin/dashboard", { replace: true });
       } else {
+        log("Invalid response from server", {
+          hasAdmin: !!authData?.admin,
+          hasAccessToken: !!authData?.accessToken
+        });
         setError("Invalid response from server");
       }
     } catch (requestError) {
       const message = requestError?.response?.data?.message || requestError?.message || "Login failed";
+      log("Login error", { message, status: requestError?.response?.status });
       setError(message);
       toast.error(message);
     } finally {

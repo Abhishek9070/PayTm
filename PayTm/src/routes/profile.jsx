@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -22,6 +22,7 @@ function labelFromStatus(status) {
 
 export default function Profile() {
   const { user: authUser, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(authUser);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -158,6 +159,16 @@ export default function Profile() {
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <div className="text-xs uppercase tracking-[0.2em] text-slate-400">UPI ID</div>
                 <div className="mt-2 break-all text-lg font-semibold text-white">{profile?.upiId || "Not assigned"}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Account</div>
+                <div className="mt-2 text-sm text-slate-300">Update your full name and email address.</div>
+                <button
+                  onClick={() => navigate("/profile/edit")}
+                  className="mt-4 inline-flex rounded-2xl border border-sky-400/20 bg-sky-400/10 px-4 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-400/15"
+                >
+                  Edit profile
+                </button>
               </div>
               {canAccessKyc ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">

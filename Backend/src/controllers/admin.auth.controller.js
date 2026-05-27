@@ -122,7 +122,7 @@ export const refreshAdminToken = asyncHandler(async (req, res) => {
   let decoded;
 
   try {
-    decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET || process.env.REFRESH_TOKEN_SECRTE);
+    decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
   } catch (error) {
     throw new ApiError(401, "Invalid or expired refresh token");
   }

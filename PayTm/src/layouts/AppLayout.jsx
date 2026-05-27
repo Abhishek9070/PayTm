@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import NotificationBell from "../components/notifications/NotificationBell.jsx";
 
 const essentialNav = [
   { label: "Dashboard", to: "/dashboard", icon: "📊" },
@@ -90,7 +91,11 @@ function AppLayout() {
                 </Link>
               </>
             ) : (
-              <div ref={profileMenuRef} className="relative flex items-center">
+              <>
+                {/* Notification Bell */}
+                <NotificationBell />
+
+                {/* Profile Menu */}
                 <button
                   type="button"
                   ref={buttonRef}
@@ -177,7 +182,7 @@ function AppLayout() {
                       document.body
                     )
                   : null}
-              </div>
+              </>
             )}
           </div>
         </div>

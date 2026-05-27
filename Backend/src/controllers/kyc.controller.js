@@ -2,6 +2,7 @@ import { User } from "../models/user.model.js";
 import ApiError from "../utils/apiErros.js";
 import ApiResponse from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { createNotification } from "../utils/createNotification.js";
 
 const allowedDocumentTypes = new Set(["aadhaar", "pan"]);
 
@@ -128,6 +129,33 @@ export const reviewKycSubmission = asyncHandler(async (req, res) => {
   user.isVerified = status === "approved";
 
   await user.save();
+
+  if (status === "approved") {
+    await createNotification({
+      userId,
+      title: "KYC Approved",
+      message: "Your KYC has been approved successfully",
+      type: "kyc",
+      metadata: {
+        status: "approved"
+      },
+      sendEmail: true,
+      user
+    });
+  } else {
+    await createNotification({
+      userId,
+      title: "KYC Rejected",
+      message: `Your KYC has been rejected: ${rejectionReason}`,
+      type: "kyc",
+      metadata: {
+        status: "rejected",
+        reason: rejectionReason
+      },
+      sendEmail: true,
+      user
+    });
+  }
 
   return res.status(200).json(
     new ApiResponse(

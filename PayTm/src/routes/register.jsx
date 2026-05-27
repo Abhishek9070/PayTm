@@ -35,8 +35,24 @@ function Register() {
       return;
     }
 
-    if (!formData.phoneNumber.trim() || !formData.password.trim()) {
-      setError("Enter your phone number and password to create an account.");
+    if (!formData.phoneNumber.trim()) {
+      setError("Enter your phone number to create an account.");
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setError("Email is required to create an account.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (!formData.password.trim()) {
+      setError("Enter a password to create an account.");
       return;
     }
 
