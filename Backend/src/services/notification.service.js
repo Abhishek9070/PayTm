@@ -11,9 +11,7 @@ import {
   sendLowBalanceAlertEmail
 } from "./email.service.js";
 
-/**
- * Create notification in database
- */
+
 const createNotificationInDB = async ({
   userId,
   title,
@@ -38,10 +36,6 @@ const createNotificationInDB = async ({
   }
 };
 
-/**
- * Main notification creation function
- * Handles both in-app notifications and emails
- */
 export const createNotification = async ({
   userId,
   title,
@@ -52,7 +46,7 @@ export const createNotification = async ({
   user = null
 }) => {
   try {
-    // Save to database
+  
     const notification = await createNotificationInDB({
       userId,
       title,
@@ -61,9 +55,9 @@ export const createNotification = async ({
       metadata
     });
 
-    // Send email if requested and user email available
+  
     if (sendEmail && user && user.email) {
-      // Determine which email to send based on notification type
+   
       await sendEmailNotification({
         user,
         type,
@@ -73,8 +67,7 @@ export const createNotification = async ({
       });
     }
 
-    // TODO: Emit socket.io event for real-time notifications
-    // io.to(`user_${userId}`).emit('notification', notification);
+  
 
     return notification;
   } catch (error) {
@@ -83,9 +76,7 @@ export const createNotification = async ({
   }
 };
 
-/**
- * Send appropriate email based on notification type
- */
+
 const sendEmailNotification = async ({ user, type, metadata, title, message }) => {
   const { email, firstName, lastName } = user;
   const userName = `${firstName} ${lastName}`;
@@ -184,9 +175,7 @@ const sendEmailNotification = async ({ user, type, metadata, title, message }) =
   }
 };
 
-/**
- * Get user notifications with pagination
- */
+
 export const getUserNotifications = async (userId, limit = 20, skip = 0) => {
   try {
     const notifications = await Notification.find({ userId })
@@ -210,9 +199,7 @@ export const getUserNotifications = async (userId, limit = 20, skip = 0) => {
   }
 };
 
-/**
- * Mark single notification as read
- */
+
 export const markNotificationAsRead = async (notificationId, userId) => {
   try {
     const notification = await Notification.findOneAndUpdate(
@@ -227,9 +214,7 @@ export const markNotificationAsRead = async (notificationId, userId) => {
   }
 };
 
-/**
- * Mark all notifications as read
- */
+
 export const markAllNotificationsAsRead = async (userId) => {
   try {
     const result = await Notification.updateMany(
@@ -243,9 +228,7 @@ export const markAllNotificationsAsRead = async (userId) => {
   }
 };
 
-/**
- * Get unread count
- */
+
 export const getUnreadCount = async (userId) => {
   try {
     const count = await Notification.countDocuments({
@@ -259,9 +242,7 @@ export const getUnreadCount = async (userId) => {
   }
 };
 
-/**
- * Delete old notifications (cleanup)
- */
+
 export const deleteOldNotifications = async (daysOld = 30) => {
   try {
     const cutoffDate = new Date();

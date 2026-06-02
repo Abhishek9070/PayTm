@@ -102,7 +102,7 @@ const AdminNotificationBell = () => {
           className="absolute right-0 mt-2 w-96 bg-slate-900 rounded-lg shadow-2xl z-50 max-h-96 flex flex-col border border-white/10"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-sky-600/20 to-cyan-600/20 p-4 border-b border-white/10 flex items-center justify-between rounded-t-lg">
+          <div className="bg-linear-to-r from-sky-600/20 to-cyan-600/20 p-4 border-b border-white/10 flex items-center justify-between rounded-t-lg">
             <div>
               <h3 className="font-bold text-white">Admin Notifications</h3>
               <p className="text-sm text-slate-400">
