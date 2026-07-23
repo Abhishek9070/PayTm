@@ -4,10 +4,11 @@
   "description": "Making paytm backend ",
   "main": "index.js",
   "type": "module",
-  "scripts": {
-    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
-    "make-admin": "node -r dotenv/config scripts/make-admin.js"
-  },
+"scripts": {
+  "start": "node -r dotenv/config --experimental-json-modules src/index.js",
+  "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
+  "make-admin": "node -r dotenv/config scripts/make-admin.js"
+},
   "keywords": [
     "javascript",
     "paytm",
