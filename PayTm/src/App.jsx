@@ -31,9 +31,9 @@ import AdminSettings from "./admin/pages/AdminSettings.jsx";
 
 function App() {
   return (
-    <BrowserRouter>
-      <AdminAuthProvider>
-        <AdminNotificationProvider>
+    <AdminAuthProvider>
+      <AdminNotificationProvider>
+        <BrowserRouter>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -95,9 +95,9 @@ function App() {
             <Route path="/signup" element={<Register />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </AdminNotificationProvider>
-      </AdminAuthProvider>
-    </BrowserRouter>
+        </BrowserRouter>
+      </AdminNotificationProvider>
+    </AdminAuthProvider>
   );
 }
 

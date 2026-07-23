@@ -67,8 +67,12 @@ export const adminLogin = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
+    // set both admin-specific and generic cookie names so protected routes
+    // and refresh logic can read whichever name is available
     .cookie("adminAccessToken", accessToken, cookieOptions)
     .cookie("adminRefreshToken", refreshToken, cookieOptions)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .cookie("refreshToken", refreshToken, cookieOptions)
     .json(
       new ApiResponse(
         200,
@@ -95,6 +99,8 @@ export const adminLogout = asyncHandler(async (req, res) => {
     .status(200)
     .clearCookie("adminAccessToken")
     .clearCookie("adminRefreshToken")
+    .clearCookie("accessToken")
+    .clearCookie("refreshToken")
     .json(new ApiResponse(200, null, "Admin logout successful"));
 });
 
@@ -113,7 +119,8 @@ export const getAdminProfile = asyncHandler(async (req, res) => {
 });
 
 export const refreshAdminToken = asyncHandler(async (req, res) => {
-  const token = req.cookies?.adminRefreshToken || req.body?.refreshToken;
+  // accept either admin-specific cookie name or generic cookie/body value
+  const token = req.cookies?.adminRefreshToken || req.cookies?.refreshToken || req.body?.refreshToken;
 
   if (!token) {
     throw new ApiError(401, "Refresh token is missing");

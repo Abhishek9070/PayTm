@@ -16,52 +16,67 @@ const log = (message, data = null) => {
   }
 };
 
+// Initialize state synchronously from localStorage to avoid race conditions
+const initializeAdminState = () => {
+  const savedAdmin = localStorage.getItem(STORAGE_KEYS.admin);
+  if (savedAdmin) {
+    try {
+      return JSON.parse(savedAdmin);
+    } catch (err) {
+      log("ERROR parsing saved admin on init", err.message);
+      localStorage.removeItem(STORAGE_KEYS.admin);
+    }
+  }
+  return null;
+};
+
+const initializeTokenState = () => {
+  const savedToken = localStorage.getItem(STORAGE_KEYS.token);
+  if (savedToken) {
+    adminApi.defaults.headers.common.Authorization = `Bearer ${savedToken}`;
+  }
+  return savedToken || null;
+};
+
+const initializeRefreshTokenState = () => {
+  return localStorage.getItem(STORAGE_KEYS.refreshToken) || null;
+};
+
 export function AdminAuthProvider({ children }) {
-  const [admin, setAdmin] = useState(null);
-  const [token, setToken] = useState(null);
-  const [refreshToken, setRefreshToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const savedAdmin = localStorage.getItem(STORAGE_KEYS.admin);
-    const savedToken = localStorage.getItem(STORAGE_KEYS.token);
-    const savedRefreshToken = localStorage.getItem(STORAGE_KEYS.refreshToken);
-
-    log("Initializing AdminAuthContext", { 
-      hasAdmin: !!savedAdmin, 
-      hasToken: !!savedToken, 
-      hasRefreshToken: !!savedRefreshToken 
+  // Initialize state SYNCHRONOUSLY from localStorage to prevent race conditions
+  // where AdminProtectedRoute reads admin before initialization effect runs
+  const [admin, setAdmin] = useState(() => {
+    const initialAdmin = initializeAdminState();
+    log("Initialized admin state from localStorage", { 
+      hasAdmin: !!initialAdmin,
+      adminId: initialAdmin?._id,
+      adminName: initialAdmin?.fullName 
     });
+    return initialAdmin;
+  });
+  
+  const [token, setToken] = useState(() => {
+    const initialToken = initializeTokenState();
+    log("Initialized token state from localStorage", { hasToken: !!initialToken });
+    return initialToken;
+  });
+  
+  const [refreshToken, setRefreshToken] = useState(() => {
+    const initialRefreshToken = initializeRefreshTokenState();
+    log("Initialized refresh token state from localStorage", { hasRefreshToken: !!initialRefreshToken });
+    return initialRefreshToken;
+  });
+  
+  const [loading, setLoading] = useState(false);
 
-    if (savedAdmin) {
-      try {
-        const parsedAdmin = JSON.parse(savedAdmin);
-        log("Parsed admin from storage", { 
-          id: parsedAdmin._id, 
-          fullName: parsedAdmin.fullName,
-          role: parsedAdmin.role 
-        });
-        setAdmin(parsedAdmin);
-      } catch (err) {
-        log("ERROR parsing saved admin", err.message);
-        localStorage.removeItem(STORAGE_KEYS.admin);
-      }
+  // Forcefully sync admin state after any state updates
+  // This ensures admin persists when navigating to protected routes
+  useEffect(() => {
+    if (admin) {
+      log("Effect: admin is set, ensuring it stays synced to localStorage", { adminId: admin._id });
+      localStorage.setItem(STORAGE_KEYS.admin, JSON.stringify(admin));
     }
-
-    if (savedToken) {
-      log("Setting token from storage");
-      setToken(savedToken);
-      adminApi.defaults.headers.common.Authorization = `Bearer ${savedToken}`;
-    }
-
-    if (savedRefreshToken) {
-      log("Setting refresh token from storage");
-      setRefreshToken(savedRefreshToken);
-    }
-
-    log("AdminAuthContext initialization complete");
-    setLoading(false);
-  }, []);
+  }, [admin]);
 
   useEffect(() => {
     if (token) {
