@@ -111,12 +111,9 @@ export const NotificationProvider = ({ children }) => {
     fetchNotifications();
     fetchUnreadCount();
 
- 
     const notificationInterval = setInterval(() => {
-      fetchNotifications();
       fetchUnreadCount();
-    }, 3000);
-
+    }, 10000);
 
     return () => clearInterval(notificationInterval);
   }, [fetchNotifications, fetchUnreadCount]);

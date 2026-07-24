@@ -8,7 +8,7 @@ const api = axios.create({
 let isRefreshing = false;
 let failedQueue = [];
 
-const DEBUG = true;
+const DEBUG = false;
 const log = (message, data = null) => {
   if (DEBUG) {
     console.log(`[API] ${message}`, data || "");
