@@ -1,6 +1,4 @@
 import { Notification } from "../models/notification.model.js";
-
-
 const createNotificationInDB = async ({
   userId,
   title,
