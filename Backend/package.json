@@ -4,11 +4,11 @@
   "description": "Making paytm backend ",
   "main": "index.js",
   "type": "module",
-  "scripts": {
-     "start": "node -r dotenv/config --experimental-json-modules src/index.js",
-    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
-    "make-admin": "node -r dotenv/config scripts/make-admin.js"
-  },
+"scripts": {
+  "start": "node -r dotenv/config --experimental-json-modules src/index.js",
+  "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js", 
+  "make-admin": "node -r dotenv/config scripts/make-admin.js"
+},
   "keywords": [
     "javascript",
     "paytm",
@@ -28,9 +28,7 @@
     "mongoose": "^9.4.1",
     "multer": "^2.1.1",
     "multer-storage-cloudinary": "^4.0.0",
-    "razorpay": "^2.9.6",
-    "resend": "^6.12.4",
-    "twilio": "^6.0.0"
+    "razorpay": "^2.9.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

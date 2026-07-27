@@ -8,7 +8,7 @@ const api = axios.create({
 let isRefreshing = false;
 let failedQueue = [];
 
-const DEBUG = true;
+const DEBUG = false;
 const log = (message, data = null) => {
   if (DEBUG) {
     console.log(`[API] ${message}`, data || "");
@@ -84,7 +84,6 @@ export const setupInterceptors = (logoutCallback) => {
             // No refresh token, logout
             processQueue(error, null);
             logoutCallback();
-            window.location.href = "/";
             return Promise.reject(error);
           }
 
@@ -122,7 +121,6 @@ export const setupInterceptors = (logoutCallback) => {
               log("Token refresh failed", { message: err.response?.data?.message || err.message });
               processQueue(err, null);
               logoutCallback();
-              window.location.href = "/";
               return Promise.reject(err);
             });
         } else {

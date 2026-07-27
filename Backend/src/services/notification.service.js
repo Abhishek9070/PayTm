@@ -1,19 +1,6 @@
 import { Notification } from "../models/notification.model.js";
-import {
-  sendMoneyReceivedEmail,
-  sendMoneyDebitedEmail,
-  sendWithdrawalRequestEmail,
-  sendWithdrawalSuccessEmail,
-  sendKYCApprovedEmail,
-  sendKYCRejectedEmail,
-  sendLoginAlertEmail,
-  sendPasswordChangedEmail,
-  sendLowBalanceAlertEmail
-} from "./email.service.js";
 
-/**
- * Create notification in database
- */
+
 const createNotificationInDB = async ({
   userId,
   title,
@@ -38,21 +25,14 @@ const createNotificationInDB = async ({
   }
 };
 
-/**
- * Main notification creation function
- * Handles both in-app notifications and emails
- */
 export const createNotification = async ({
   userId,
   title,
   message,
   type = "system",
-  sendEmail = false,
-  metadata = null,
-  user = null
+  metadata = null
 }) => {
   try {
-    // Save to database
     const notification = await createNotificationInDB({
       userId,
       title,
@@ -61,21 +41,6 @@ export const createNotification = async ({
       metadata
     });
 
-    // Send email if requested and user email available
-    if (sendEmail && user && user.email) {
-      // Determine which email to send based on notification type
-      await sendEmailNotification({
-        user,
-        type,
-        metadata,
-        title,
-        message
-      });
-    }
-
-    // TODO: Emit socket.io event for real-time notifications
-    // io.to(`user_${userId}`).emit('notification', notification);
-
     return notification;
   } catch (error) {
     console.error("Error in createNotification:", error);
@@ -83,110 +48,7 @@ export const createNotification = async ({
   }
 };
 
-/**
- * Send appropriate email based on notification type
- */
-const sendEmailNotification = async ({ user, type, metadata, title, message }) => {
-  const { email, firstName, lastName } = user;
-  const userName = `${firstName} ${lastName}`;
-  const now = new Date().toLocaleString("en-IN");
 
-  try {
-    switch (type) {
-      case "credit":
-        await sendMoneyReceivedEmail({
-          email,
-          amount: metadata?.amount || 0,
-          senderName: metadata?.senderName || "Unknown",
-          availableBalance: metadata?.availableBalance || 0,
-          transactionId: metadata?.transactionId || "N/A",
-          time: metadata?.time || now
-        });
-        break;
-
-      case "debit":
-        await sendMoneyDebitedEmail({
-          email,
-          amount: metadata?.amount || 0,
-          recipientName: metadata?.recipientName || "Unknown",
-          availableBalance: metadata?.availableBalance || 0,
-          transactionId: metadata?.transactionId || "N/A",
-          time: metadata?.time || now
-        });
-        break;
-
-      case "withdrawal":
-        if (metadata?.status === "requested") {
-          await sendWithdrawalRequestEmail({
-            email,
-            amount: metadata?.amount || 0,
-            withdrawalId: metadata?.withdrawalId || "N/A",
-            time: metadata?.time || now
-          });
-        } else if (metadata?.status === "completed") {
-          await sendWithdrawalSuccessEmail({
-            email,
-            amount: metadata?.amount || 0,
-            accountNumber: metadata?.accountNumber || "",
-            time: metadata?.time || now,
-            transactionId: metadata?.transactionId || "N/A"
-          });
-        }
-        break;
-
-      case "kyc":
-        if (metadata?.status === "approved") {
-          await sendKYCApprovedEmail({
-            email,
-            userName
-          });
-        } else if (metadata?.status === "rejected") {
-          await sendKYCRejectedEmail({
-            email,
-            userName,
-            reason: metadata?.reason || "Documents do not meet requirements"
-          });
-        }
-        break;
-
-      case "security":
-        if (metadata?.type === "login_alert") {
-          await sendLoginAlertEmail({
-            email,
-            userName,
-            ip: metadata?.ip || "Unknown",
-            browser: metadata?.browser || "Unknown",
-            time: metadata?.time || now,
-            deviceName: metadata?.deviceName || "Unknown Device"
-          });
-        } else if (metadata?.type === "password_changed") {
-          await sendPasswordChangedEmail({
-            email,
-            userName,
-            time: metadata?.time || now
-          });
-        }
-        break;
-
-      case "low_balance":
-        await sendLowBalanceAlertEmail({
-          email,
-          userName,
-          balance: metadata?.balance || 0
-        });
-        break;
-
-      default:
-        console.log("No email template for type:", type);
-    }
-  } catch (error) {
-    console.error("Error sending email notification:", error);
-  }
-};
-
-/**
- * Get user notifications with pagination
- */
 export const getUserNotifications = async (userId, limit = 20, skip = 0) => {
   try {
     const notifications = await Notification.find({ userId })
@@ -210,9 +72,7 @@ export const getUserNotifications = async (userId, limit = 20, skip = 0) => {
   }
 };
 
-/**
- * Mark single notification as read
- */
+
 export const markNotificationAsRead = async (notificationId, userId) => {
   try {
     const notification = await Notification.findOneAndUpdate(
@@ -227,9 +87,7 @@ export const markNotificationAsRead = async (notificationId, userId) => {
   }
 };
 
-/**
- * Mark all notifications as read
- */
+
 export const markAllNotificationsAsRead = async (userId) => {
   try {
     const result = await Notification.updateMany(
@@ -243,9 +101,7 @@ export const markAllNotificationsAsRead = async (userId) => {
   }
 };
 
-/**
- * Get unread count
- */
+
 export const getUnreadCount = async (userId) => {
   try {
     const count = await Notification.countDocuments({
@@ -259,9 +115,7 @@ export const getUnreadCount = async (userId) => {
   }
 };
 
-/**
- * Delete old notifications (cleanup)
- */
+
 export const deleteOldNotifications = async (daysOld = 30) => {
   try {
     const cutoffDate = new Date();
