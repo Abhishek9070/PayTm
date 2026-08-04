@@ -1,7 +1,9 @@
 import axios from "axios";
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
+
 const api = axios.create({
-  baseURL: "http://localhost:8000/api/v1",
+  baseURL: BASE_URL,
   withCredentials: true
 });
 
@@ -89,7 +91,7 @@ export const setupInterceptors = (logoutCallback) => {
 
           // Use a direct axios instance without interceptors for refresh to avoid infinite loops
           return axios
-            .post("http://localhost:8000/api/v1/auth/refresh-token", { refreshToken }, {
+            .post(`${BASE_URL}/auth/refresh-token`, { refreshToken }, {
               withCredentials: true
             })
             .then((res) => {

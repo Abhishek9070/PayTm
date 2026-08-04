@@ -14,8 +14,9 @@ export const useAdminNotifications = () => {
 };
 
 // Create a dedicated API instance for admin notifications using the regular API endpoint
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
 const adminNotificationApi = axios.create({
-  baseURL: "http://localhost:8000/api/v1",
+  baseURL: BASE_URL,
   withCredentials: true
 });
 

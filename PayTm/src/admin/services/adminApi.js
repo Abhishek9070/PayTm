@@ -1,7 +1,9 @@
 import axios from "axios";
 
+const ADMIN_BASE_URL = import.meta.env.VITE_ADMIN_API_BASE_URL ?? `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"}/admin`;
+
 const adminApi = axios.create({
-  baseURL: "http://localhost:8000/api/v1/admin",
+  baseURL: ADMIN_BASE_URL,
   withCredentials: true
 });
 
@@ -92,7 +94,7 @@ adminApi.interceptors.response.use(
 
         // Use a direct axios instance without interceptors for refresh to avoid infinite loops
         return axios
-          .post("http://localhost:8000/api/v1/admin/auth/refresh-token", { refreshToken }, {
+          .post(`${ADMIN_BASE_URL}/auth/refresh-token`, { refreshToken }, {
             withCredentials: true
           })
           .then((res) => {

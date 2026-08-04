@@ -4,11 +4,13 @@ import { useAuth } from "../context/AuthContext";
 import { LoadingButton, Skeleton } from "../components/ui/loading-state.jsx";
 import toast from "react-hot-toast";
 
+const RAZORPAY_SCRIPT_URL = import.meta.env.VITE_RAZORPAY_SCRIPT_URL ?? "https://checkout.razorpay.com/v1/checkout.js";
+
 function loadRazorpayScript() {
 	return new Promise((resolve, reject) => {
 		if (window.Razorpay) return resolve(true);
 		const script = document.createElement("script");
-		script.src = "https://checkout.razorpay.com/v1/checkout.js";
+		script.src = RAZORPAY_SCRIPT_URL;
 		script.onload = () => resolve(true);
 		script.onerror = () => reject(new Error("Failed to load Razorpay SDK"));
 		document.body.appendChild(script);
