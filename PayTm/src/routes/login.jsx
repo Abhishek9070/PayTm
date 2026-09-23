@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext.jsx";
 import { LoadingButton } from "../components/ui/loading-state.jsx";
+import PasswordInput from "../components/ui/PasswordInput.jsx";
 import toast from "react-hot-toast";
 
 function Login() {
@@ -118,21 +119,15 @@ function Login() {
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-200">
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Your password"
-                    className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/30"
-                  />
-                </div>
+                <PasswordInput
+                  id="password"
+                  name="password"
+                  autoComplete="current-password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Your password"
+                  className="bg-slate-950/60 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/30"
+                />
 
                 {error ? (
                   <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">

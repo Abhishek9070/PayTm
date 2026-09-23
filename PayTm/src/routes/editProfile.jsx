@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext.jsx";
 import { LoadingButton } from "../components/ui/loading-state.jsx";
+import PasswordInput from "../components/ui/PasswordInput.jsx";
 import toast from "react-hot-toast";
-import { Eye, EyeOff } from "lucide-react";
 
 function EditProfile() {
   const navigate = useNavigate();
@@ -28,12 +28,6 @@ function EditProfile() {
   const [profileError, setProfileError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
-  const [showPasswords, setShowPasswords] = useState({
-    old: false,
-    new: false,
-    confirm: false
-  });
-
   // Load user data on mount
   useEffect(() => {
     if (user) {
@@ -268,80 +262,36 @@ function EditProfile() {
             </div>
 
             <form onSubmit={handlePasswordSubmit} className="flex flex-col space-y-6 grow">
-              <div>
-                <label htmlFor="oldPassword" className="mb-3 block text-sm font-semibold text-slate-200 uppercase tracking-wide">
-                  Current Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="oldPassword"
-                    name="oldPassword"
-                    type={showPasswords.old ? "text" : "password"}
-                    autoComplete="current-password"
-                    value={passwordData.oldPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Enter current password"
-                    className="w-full rounded-xl border border-white/10 bg-slate-900/50 px-5 py-3 pr-12 text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/40"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords(prev => ({ ...prev, old: !prev.old }))}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
-                  >
-                    {showPasswords.old ? <EyeOff size={19} /> : <Eye size={19} />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="newPassword" className="mb-3 block text-sm font-semibold text-slate-200 uppercase tracking-wide">
-                  New Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="newPassword"
-                    name="newPassword"
-                    type={showPasswords.new ? "text" : "password"}
-                    autoComplete="new-password"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Enter new password"
-                    className="w-full rounded-xl border border-white/10 bg-slate-900/50 px-5 py-3 pr-12 text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/40"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
-                  >
-                    {showPasswords.new ? <EyeOff size={19} /> : <Eye size={19} />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="confirmPassword" className="mb-3 block text-sm font-semibold text-slate-200 uppercase tracking-wide">
-                  Confirm New Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showPasswords.confirm ? "text" : "password"}
-                    autoComplete="new-password"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Confirm new password"
-                    className="w-full rounded-xl border border-white/10 bg-slate-900/50 px-5 py-3 pr-12 text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/40"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
-                  >
-                    {showPasswords.confirm ? <EyeOff size={19} /> : <Eye size={19} />}
-                  </button>
-                </div>
-              </div>
+              <PasswordInput
+                id="oldPassword"
+                label="Current Password"
+                name="oldPassword"
+                autoComplete="current-password"
+                value={passwordData.oldPassword}
+                onChange={handlePasswordChange}
+                placeholder="Enter current password"
+                className="bg-slate-900/50 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/40"
+              />
+              <PasswordInput
+                id="newPassword"
+                label="New Password"
+                name="newPassword"
+                autoComplete="new-password"
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                placeholder="Enter new password"
+                className="bg-slate-900/50 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/40"
+              />
+              <PasswordInput
+                id="confirmPassword"
+                label="Confirm New Password"
+                name="confirmPassword"
+                autoComplete="new-password"
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordChange}
+                placeholder="Confirm new password"
+                className="bg-slate-900/50 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/40"
+              />
 
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-5 py-3.5 text-sm text-amber-200">
                 <p>🔒 Password must be at least 6 characters long.</p>

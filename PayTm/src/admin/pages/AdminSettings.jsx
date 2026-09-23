@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import adminApi from "../services/adminApi";
+import PasswordInput from "../../components/ui/PasswordInput.jsx";
 
 export default function AdminSettings() {
   const { admin, logout, updateAdmin } = useAdminAuth();
@@ -30,6 +31,13 @@ export default function AdminSettings() {
 
   const saveProfile = async (event) => {
     event.preventDefault();
+
+    const changingPassword = form.currentPassword || form.newPassword;
+    if (changingPassword && (!form.currentPassword || !form.newPassword)) {
+      toast.error("Enter both current and new passwords");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -82,14 +90,23 @@ export default function AdminSettings() {
 
           <h2 className="mt-8 text-lg font-semibold text-white">Change password</h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <label className="text-sm text-slate-300">
-              Current password
-              <input name="currentPassword" type="password" value={form.currentPassword} onChange={updateField} className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-sky-400/60" />
-            </label>
-            <label className="text-sm text-slate-300">
-              New password
-              <input name="newPassword" type="password" minLength={8} value={form.newPassword} onChange={updateField} className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-sky-400/60" />
-            </label>
+            <PasswordInput
+              label="Current password"
+              name="currentPassword"
+              autoComplete="current-password"
+              value={form.currentPassword}
+              onChange={updateField}
+              className="bg-slate-900"
+            />
+            <PasswordInput
+              label="New password"
+              name="newPassword"
+              autoComplete="new-password"
+              minLength={8}
+              value={form.newPassword}
+              onChange={updateField}
+              className="bg-slate-900"
+            />
           </div>
 
           <button type="submit" disabled={saving} className="mt-6 rounded-2xl bg-sky-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60">

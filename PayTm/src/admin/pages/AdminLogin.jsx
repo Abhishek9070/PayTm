@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import adminApi from "../services/adminApi";
 import toast from "react-hot-toast";
+import PasswordInput from "../../components/ui/PasswordInput.jsx";
 
-const DEBUG = true;
+const DEBUG = false;
 const log = (message, data = null) => {
   if (DEBUG) {
     console.log(`[AdminLogin] ${message}`, data || "");
@@ -18,8 +19,6 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [pausedAuthData, setPausedAuthData] = useState(null);
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
@@ -59,17 +58,7 @@ export default function AdminLogin() {
         log("Valid auth data, calling login function");
         login(authData);
         toast.success("Admin login successful");
-
-        // Debug helper: pause automatic navigation so developer can inspect
-        // tokens, localStorage and network calls before the redirect.
-        // Render an inspector UI instead of immediately navigating.
-        setPausedAuthData(authData);
-        log("Paused before navigation for inspection", {
-          admin: authData?.admin,
-          accessToken: !!authData?.accessToken,
-          refreshToken: !!authData?.refreshToken
-        });
-        // Do not auto-navigate when paused
+        navigate("/admin/dashboard", { replace: true });
       } else {
         log("Invalid response from server", {
           hasAdmin: !!authData?.admin,
@@ -118,32 +107,21 @@ export default function AdminLogin() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-200">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setError("");
-              }}
-              placeholder="••••••••"
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 py-2 text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60 focus:bg-slate-700/80 focus:ring-1 focus:ring-sky-400/30"
-            />
-          </div>
+          <PasswordInput
+            label="Password"
+            name="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError("");
+            }}
+            placeholder="••••••••"
+          />
 
           <button
             type="submit"
             disabled={loading}
-            onClick={() => {
-                  log("Proceeding to dashboard after inspection");
-                  // Use setTimeout to ensure React has processed state updates
-                  // before navigation happens
-                  setTimeout(() => {
-                    log("Navigating to dashboard");
-                    navigate("/admin/dashboard", { replace: true });
-                  }, 0);
-                }}
             className="mt-6 w-full rounded-2xl bg-linear-to-r from-sky-400 to-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
@@ -156,40 +134,6 @@ export default function AdminLogin() {
             )}
           </button>
         </form>
-
-        {/* {pausedAuthData && (
-          <div className="mt-6 rounded-2xl border border-sky-400/20 bg-slate-800/60 p-4 text-sm text-sky-200">
-            <p className="font-semibold">Debug: Login paused for inspection</p>
-            <p className="mt-2">Admin: {pausedAuthData.admin?.fullName} ({pausedAuthData.admin?._id})</p>
-            <p>Access token present: {pausedAuthData.accessToken ? "yes" : "no"}</p>
-            <p>Refresh token present: {pausedAuthData.refreshToken ? "yes" : "no"}</p>
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={() => {
-                  log("Proceeding to dashboard after inspection");
-                  // Use setTimeout to ensure React has processed state updates
-                  // before navigation happens
-                  setTimeout(() => {
-                    log("Navigating to dashboard");
-                    navigate("/admin/dashboard", { replace: true });
-                  }, 0);
-                }}
-                className="rounded-2xl bg-emerald-400 px-3 py-1 text-sm font-semibold text-slate-900"
-              >
-                Proceed to dashboard
-              </button>
-              <button
-                onClick={() => {
-                  setPausedAuthData(null);
-                  toast("Resumed auto flow");
-                }}
-                className="rounded-2xl bg-rose-500 px-3 py-1 text-sm font-semibold text-white"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-        )} */}
 
         <p className="mt-6 text-center text-xs text-slate-400">
           Authorized personnel only. All access is logged and monitored.
