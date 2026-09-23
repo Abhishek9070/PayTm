@@ -171,6 +171,47 @@ export const reviewKyc = async (userId, payload) => {
   }
 };
 
+const requestAdminOrLegacy = async (adminRequest, legacyRequest) => {
+  try {
+    return await adminRequest();
+  } catch (error) {
+    if (error.response?.status !== 404) {
+      throw error;
+    }
+
+    return legacyRequest();
+  }
+};
+
+const legacyAdminRequest = (method, path, payload) => {
+  const token = localStorage.getItem("paytm_admin_token");
+  return axios({
+    method,
+    url: `${API_BASE_URL}${path}`,
+    data: payload,
+    withCredentials: true,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
+};
+
+export const getPendingWithdrawals = () =>
+  requestAdminOrLegacy(
+    () => adminApi.get("/withdrawals/pending"),
+    () => legacyAdminRequest("get", "/withdrawals/pending")
+  );
+
+export const approveWithdrawal = (withdrawalId) =>
+  requestAdminOrLegacy(
+    () => adminApi.patch(`/withdrawals/${withdrawalId}/approve`),
+    () => legacyAdminRequest("patch", `/withdrawals/${withdrawalId}/approve`)
+  );
+
+export const rejectWithdrawal = (withdrawalId, payload) =>
+  requestAdminOrLegacy(
+    () => adminApi.patch(`/withdrawals/${withdrawalId}/reject`, payload),
+    () => legacyAdminRequest("patch", `/withdrawals/${withdrawalId}/reject`, payload)
+  );
+
 console.log(
   "ADMIN API BASE URL:",
   import.meta.env.VITE_ADMIN_API_BASE_URL
