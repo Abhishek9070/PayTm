@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import adminApi from "../services/adminApi";
-import api from "../../api/axios";
 
 export default function AdminWithdrawals() {
   const [withdrawals, setWithdrawals] = useState([]);
@@ -12,7 +11,7 @@ export default function AdminWithdrawals() {
     setError("");
 
     try {
-      const res = await api.get("/withdrawals/pending");
+      const res = await adminApi.get("/withdrawals/pending");
       setWithdrawals(res.data?.data || res.data || []);
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Failed to load withdrawals");
@@ -27,7 +26,7 @@ export default function AdminWithdrawals() {
 
   const approve = async (withdrawalId) => {
     try {
-      await api.patch(`/withdrawals/${withdrawalId}/approve`);
+      await adminApi.patch(`/withdrawals/${withdrawalId}/approve`);
       await loadWithdrawals();
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Failed to approve withdrawal");
@@ -39,7 +38,7 @@ export default function AdminWithdrawals() {
     if (reason === null) return;
 
     try {
-      await api.patch(`/withdrawals/${withdrawalId}/reject`, { reason });
+      await adminApi.patch(`/withdrawals/${withdrawalId}/reject`, { reason });
       await loadWithdrawals();
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Failed to reject withdrawal");

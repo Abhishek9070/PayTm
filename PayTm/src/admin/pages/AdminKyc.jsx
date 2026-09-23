@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import adminApi from "../services/adminApi";
-import api from "../../api/axios";
+import adminApi, { reviewKyc } from "../services/adminApi";
 
 export default function AdminKyc() {
   const [pending, setPending] = useState([]);
@@ -28,7 +27,7 @@ export default function AdminKyc() {
 
   const approve = async (id) => {
     try {
-      await api.patch(`/kyc/${id}/review`, { status: "approved" });
+      await reviewKyc(id, { status: "approved" });
       await loadPending();
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Failed to approve KYC");
@@ -40,7 +39,7 @@ export default function AdminKyc() {
     if (!rejectionReason) return;
 
     try {
-      await api.patch(`/kyc/${id}/review`, { status: "rejected", rejectionReason });
+      await reviewKyc(id, { status: "rejected", rejectionReason });
       await loadPending();
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Failed to reject KYC");
@@ -96,3 +95,8 @@ export default function AdminKyc() {
     </section>
   );
 }
+
+console.log(
+  "ADMIN API BASE URL:",
+  import.meta.env.VITE_ADMIN_API_BASE_URL
+);

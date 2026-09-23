@@ -1,6 +1,7 @@
 import axios from "axios";
 
 const ADMIN_BASE_URL = import.meta.env.VITE_ADMIN_API_BASE_URL ?? `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"}/admin`;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
 const adminApi = axios.create({
   baseURL: ADMIN_BASE_URL,
@@ -154,4 +155,29 @@ adminApi.interceptors.response.use(
   }
 );
 
+export const reviewKyc = async (userId, payload) => {
+  try {
+    return await adminApi.patch(`/kyc/${userId}/review`, payload);
+  } catch (error) {
+    if (error.response?.status !== 404) {
+      throw error;
+    }
+
+    const token = localStorage.getItem("paytm_admin_token");
+    return axios.patch(`${API_BASE_URL}/kyc/${userId}/review`, payload, {
+      withCredentials: true,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined
+    });
+  }
+};
+
+console.log(
+  "ADMIN API BASE URL:",
+  import.meta.env.VITE_ADMIN_API_BASE_URL
+);
+
+console.log(
+  "NORMAL API BASE URL:",
+  import.meta.env.VITE_API_BASE_URL
+);
 export default adminApi;

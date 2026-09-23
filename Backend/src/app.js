@@ -16,27 +16,42 @@ import adminAuthRoutes from "./routes/admin.auth.routes.js";
 
 const app = express();
 
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+const normalizeOrigin = (value) => {
+    try {
+        return new URL(value).origin;
+    } catch {
+        return null;
+    }
+};
+
+const explicitOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost:5174,https://payement-system.onrender.com,https://pay-tm-delta.vercel.app")
     .split(",")
     .map((o) => o.trim())
+    .map(normalizeOrigin)
     .filter(Boolean);
 
-app.use(
-    cors({
-        origin: function (origin, callback) {
-            if (!origin) return callback(null, true);
-            return allowedOrigins.indexOf(origin) !== -1
-                ? callback(null, true)
-                : callback(new Error("CORS origin denied"));
-        },
-        credentials: true,
-        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
-    })
-);
+const alwaysAllowOrigins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174"
+].map(normalizeOrigin).filter(Boolean);
 
-// Preflight will be handled by the global CORS middleware above.
-// Removed explicit app.options("*") because path-to-regexp rejects '*'.
+const allowedOrigins = [...new Set([...explicitOrigins, ...alwaysAllowOrigins])];
+
+console.log("CORS allowed origins:", allowedOrigins);
+
+const corsOptions = {
+    origin: true,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+
+// Global CORS middleware handles preflight for valid routes.
 
 app.use(
     "/api/v1/razorpay/webhook",

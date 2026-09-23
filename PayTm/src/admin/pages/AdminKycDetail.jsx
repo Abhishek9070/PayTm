@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import adminApi from "../services/adminApi";
-import api from "../../api/axios";
+import adminApi, { reviewKyc } from "../services/adminApi";
 
 export default function AdminKycDetail() {
   const { id } = useParams();
@@ -29,7 +28,7 @@ export default function AdminKycDetail() {
 
   const approve = async () => {
     try {
-      await api.patch(`/kyc/${id}/review`, { status: "approved" });
+      await reviewKyc(id, { status: "approved" });
       navigate('/admin/kyc');
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Failed to approve KYC");
@@ -41,7 +40,7 @@ export default function AdminKycDetail() {
     if (!rejectionReason) return;
 
     try {
-      await api.patch(`/kyc/${id}/review`, { status: "rejected", rejectionReason });
+      await reviewKyc(id, { status: "rejected", rejectionReason });
       navigate('/admin/kyc');
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Failed to reject KYC");

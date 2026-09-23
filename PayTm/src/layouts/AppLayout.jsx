@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { NotificationProvider } from "../context/NotificationContext.jsx";
 import NotificationBell from "../components/notifications/NotificationBell.jsx";
 
 const essentialNav = [
@@ -44,7 +45,8 @@ function AppLayout() {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <NotificationProvider>
+      <div className="min-h-screen bg-slate-950 text-white">
       {/* Sticky Top Navbar */}
       <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/95 backdrop-blur">
         <div className="flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -194,7 +196,8 @@ function AppLayout() {
           <Outlet />
         </div>
       </main>
-    </div>
+      </div>
+    </NotificationProvider>
   );
 }
 

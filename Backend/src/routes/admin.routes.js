@@ -22,6 +22,7 @@ import {
   unfreezeUser,
   blockUser
 } from "../controllers/admin.controller.js";
+import { reviewKycSubmission } from "../controllers/kyc.controller.js";
 
 const router = Router();
 
@@ -42,6 +43,7 @@ router.get("/kyc/pending", verifyJWT, isAdmin, getPendingKyc);
 router.get("/kyc/:id", verifyJWT, isAdmin, getKycById);
 router.patch("/kyc/:id/approve", verifyJWT, isAdmin, approveKyc);
 router.patch("/kyc/:id/reject", verifyJWT, isAdmin, rejectKyc);
+router.patch("/kyc/:userId/review", verifyJWT, isAdmin, reviewKycSubmission);
 
 // Transactions & security events
 router.get("/transactions", verifyJWT, isAdmin, getAdminTransactions);
