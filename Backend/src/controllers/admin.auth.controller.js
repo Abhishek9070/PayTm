@@ -118,6 +118,67 @@ export const getAdminProfile = asyncHandler(async (req, res) => {
     );
 });
 
+  export const updateAdminProfile = asyncHandler(async (req, res) => {
+    const { fullName, email, phoneNumber, currentPassword, newPassword } = req.body;
+    const admin = await User.findById(req.user._id).select("+password");
+
+    if (!admin || !admin.isAdmin) {
+      throw new ApiError(404, "Admin not found");
+    }
+
+    const nextFullName = String(fullName ?? admin.fullName).trim();
+    const nextEmail = String(email ?? admin.email).trim().toLowerCase();
+    const nextPhoneNumber = String(phoneNumber ?? admin.phoneNumber).trim();
+
+    if (!nextFullName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+      throw new ApiError(400, "Valid name and email are required");
+    }
+
+    if (!/^\d{10}$/.test(nextPhoneNumber)) {
+      throw new ApiError(400, "Phone number must contain 10 digits");
+    }
+
+    const duplicate = await User.findOne({
+      _id: { $ne: admin._id },
+      $or: [{ email: nextEmail }, { phoneNumber: nextPhoneNumber }]
+    }).select("_id");
+
+    if (duplicate) {
+      throw new ApiError(409, "Email or phone number is already in use");
+    }
+
+    const changingPassword = Boolean(currentPassword || newPassword);
+
+    if (changingPassword) {
+      if (!currentPassword || !newPassword) {
+        throw new ApiError(400, "Current and new passwords are required");
+      }
+
+      if (String(newPassword).length < 8) {
+        throw new ApiError(400, "New password must be at least 8 characters");
+      }
+
+      if (!(await admin.isPasswordCorrect(currentPassword))) {
+        throw new ApiError(401, "Current password is incorrect");
+      }
+
+      admin.password = newPassword;
+    }
+
+    admin.fullName = nextFullName;
+    admin.email = nextEmail;
+    admin.phoneNumber = nextPhoneNumber;
+    await admin.save();
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        { admin: buildSafeAdmin(admin) },
+        "Admin profile updated successfully"
+      )
+    );
+  });
+
 export const refreshAdminToken = asyncHandler(async (req, res) => {
   // accept either admin-specific cookie name or generic cookie/body value
   const token = req.cookies?.adminRefreshToken || req.cookies?.refreshToken || req.body?.refreshToken;
